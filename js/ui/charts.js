@@ -41,12 +41,12 @@ function formatCurrencyCompact(value) {
 }
 
 function getScenarioPath(scenario, mode) {
-  if (!scenario || !scenario.result) {
+  if (!scenario) {
     return null;
   }
 
   const pathKey = mode === "nominal" ? "pathNominal" : "pathReal";
-  const path = scenario.result[pathKey];
+  const path = scenario[pathKey];
 
   return Array.isArray(path) && path.length > 0 ? path : null;
 }
@@ -228,10 +228,7 @@ function createChartSvg(percentileRows, mode) {
   svg.appendChild(axisY);
 
   const bandPath = createSvgElement("path");
-  bandPath.setAttribute(
-    "d",
-    buildBandPath(p90Values, p10Values, xScale, yScale)
-  );
+  bandPath.setAttribute("d", buildBandPath(p90Values, p10Values, xScale, yScale));
   bandPath.setAttribute("class", "chart-band");
   svg.appendChild(bandPath);
 
