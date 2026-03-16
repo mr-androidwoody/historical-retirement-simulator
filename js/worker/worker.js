@@ -6,7 +6,7 @@ import {
 } from "../model/returns/historical.js";
 
 import { runRetirementSimulation } from "../model/simulator.js";
-import { aggregateScenarioResults } from "../model/analysis/aggregator.js";
+// import { aggregateScenarioResults } from "../model/analysis/aggregator.js";
 
 console.log("WORKER VERSION 2");
 
@@ -73,9 +73,9 @@ self.onmessage = async (event) => {
 
     console.log("Historical scenarios run:", scenarios.length);
 
-    const summary = aggregateScenarioResults(scenarios);
+//  const summary = aggregateScenarioResults(scenarios);
 
-    console.log("Aggregate summary:", summary);
+//  console.log("Aggregate summary:", summary);
 
     self.postMessage({
       ok: true,
@@ -86,7 +86,6 @@ self.onmessage = async (event) => {
           windowCount: windows.length,
           windows: windowSummary
         },
-        summary,
         scenarios
       }
     });
