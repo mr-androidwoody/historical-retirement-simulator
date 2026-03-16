@@ -723,7 +723,6 @@ main,
   opacity: 0.62;
 }
 
-/* Header row inside each person card */
 .person-header {
   display: flex;
   align-items: center;
@@ -745,25 +744,31 @@ main,
   justify-content: flex-end;
 }
 
-/* Grid for the person inputs */
+/* Two column grid for fields inside each person card */
 .person-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
 }
 
-/* Checkbox row styling */
+/* Make checkbox field behave like other form fields */
 .field-checkbox-inline {
   display: flex;
-  flex-direction: row;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 12px;
-  min-height: 44px;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 6px;
 }
 
+/* Label styling */
 .field-checkbox-inline span {
   font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--text);
+}
+
+/* Align checkbox with inputs vertically */
+.field-checkbox-inline input {
+  align-self: flex-start;
 }
 
 /* ============================================================
