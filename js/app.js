@@ -1,3 +1,4 @@
+console.log("APP VERSION 3");
 const worker = new Worker("./js/worker/worker.js?v=3", { type: "module" });
 
 worker.onmessage = (event) => {
