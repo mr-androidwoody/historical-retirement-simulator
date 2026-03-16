@@ -250,45 +250,30 @@ function renderPlanFormMarkup(values = DEFAULTS) {
 
         <section class="plan-form-section">
           <h4 class="plan-form-section-title">Core assumptions</h4>
-
-          <label class="field">
-            <span class="field-label">Simulation mode</span>
-            <select id="simulationMode">
-              <option value="historical"${values.mode === "historical" ? " selected" : ""}>Historical</option>
-              <option value="deterministic"${values.mode === "deterministic" ? " selected" : ""}>Deterministic</option>
-              <option value="montecarlo"${values.mode === "montecarlo" ? " selected" : ""}>Monte Carlo</option>
-            </select>
-          </label>
-
-          <label class="field">
-            <span class="field-label">Starting portfolio (£)</span>
-            <input
-              id="startingPortfolio"
-              type="text"
-              inputmode="decimal"
-              value="${formatNumberInput(values.startingPortfolio)}"
-            />
-          </label>
-
-          <label class="field">
-            <span class="field-label">Annual spending (£)</span>
-            <input
-              id="annualSpending"
-              type="text"
-              inputmode="decimal"
-              value="${formatNumberInput(values.annualSpending)}"
-            />
-          </label>
-
-          <label class="field">
-            <span class="field-label">Simulation years</span>
-            <input
-              id="simulationYears"
-              type="text"
-              inputmode="numeric"
-              value="${formatNumberInput(values.simulationYears)}"
-            />
-          </label>
+        
+          <div class="field-grid">
+        
+            <label class="field">
+              <span class="field-label">Simulation mode</span>
+              <select></select>
+            </label>
+        
+            <label class="field">
+              <span class="field-label">Starting portfolio (£)</span>
+              <input type="text">
+            </label>
+        
+            <label class="field">
+              <span class="field-label">Annual spending (£)</span>
+              <input type="text">
+            </label>
+        
+            <label class="field">
+              <span class="field-label">Simulation years</span>
+              <input type="text">
+            </label>
+        
+          </div>
         </section>
 
         <section class="plan-form-section">
