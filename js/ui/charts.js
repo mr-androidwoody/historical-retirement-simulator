@@ -83,6 +83,28 @@ function buildLinePath(values, xScale, yScale) {
     .join(" ");
 }
 
+function buildBandPath(upperValues, lowerValues, xScale, yScale) {
+  const upperPath = upperValues
+    .map((value, index) => {
+      const x = xScale(index);
+      const y = yScale(value);
+      return `${index === 0 ? "M" : "L"} ${x} ${y}`;
+    })
+    .join(" ");
+
+  const lowerPath = [...lowerValues]
+    .reverse()
+    .map((value, reverseIndex) => {
+      const index = lowerValues.length - 1 - reverseIndex;
+      const x = xScale(index);
+      const y = yScale(value);
+      return `L ${x} ${y}`;
+    })
+    .join(" ");
+
+  return `${upperPath} ${lowerPath} Z`;
+}
+
 function createSvgElement(tagName) {
   return document.createElementNS("http://www.w3.org/2000/svg", tagName);
 }
@@ -233,6 +255,14 @@ export function renderHistoricalChart({ container, scenarios }) {
   axisY.setAttribute("y2", String(height - margin.bottom));
   axisY.setAttribute("class", "chart-axis-line");
   svg.appendChild(axisY);
+
+  const bandPath = createSvgElement("path");
+  bandPath.setAttribute(
+    "d",
+    buildBandPath(p90Values, p10Values, xScale, yScale)
+  );
+  bandPath.setAttribute("class", "chart-band");
+  svg.appendChild(bandPath);
 
   const p90Path = createSvgElement("path");
   p90Path.setAttribute("d", buildLinePath(p90Values, xScale, yScale));
