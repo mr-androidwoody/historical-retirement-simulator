@@ -1,6 +1,6 @@
 import { simulateScenario } from "../../model/engine.js";
 import { createDeterministicReturnsProvider } from "../../model/returns/deterministic.js";
-import { aggregateResults } from "../../model/analysis/aggregator.js";
+import { aggregateScenarioResults } from "../../model/analysis/aggregator.js";
 
 export function runDeterministicMode(inputs) {
   const returnsProvider = createDeterministicReturnsProvider(inputs);
@@ -17,7 +17,7 @@ export function runDeterministicMode(inputs) {
     }
   ];
 
-  const summary = aggregateResults(scenarios);
+  const summary = aggregateScenarioResults(scenarios);
 
   return {
     scenarios,
