@@ -33,11 +33,6 @@ export async function loadHistoricalSeries() {
 
 /**
  * Create rolling historical windows.
- *
- * Example:
- * - 53 years of data
- * - 30-year simulation length
- * - produces 24 windows
  */
 export function generateRollingHistoricalWindows(series, windowLength) {
   if (!Array.isArray(series)) {
@@ -116,6 +111,14 @@ function validateHistoricalDataset(data) {
   }
 }
 
+function toDecimal(value) {
+  if (!Number.isFinite(value)) {
+    throw new Error("Historical returns provider received a non-numeric value.");
+  }
+
+  return value > 1 || value < -1 ? value / 100 : value;
+}
+
 export function createHistoricalReturnsProvider(windowRows) {
   return {
     getYearReturns(yearIndex) {
@@ -126,10 +129,10 @@ export function createHistoricalReturnsProvider(windowRows) {
       }
 
       return {
-        equities: row.returns.equities,
-        bonds: row.returns.bonds,
-        cashlike: row.returns.cashlike,
-        inflation: row.inflation
+        equities: toDecimal(row.returns.equities),
+        bonds: toDecimal(row.returns.bonds),
+        cashlike: toDecimal(row.returns.cashlike),
+        inflation: toDecimal(row.inflation)
       };
     }
   };
