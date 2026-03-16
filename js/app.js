@@ -15,9 +15,18 @@ worker.onmessage = (event) => {
   console.log("Window count:", result.dataset.windowCount);
   console.table(result.dataset.windows);
 
-  console.log("Simulation summary");
-  console.log("Depleted:", result.simulation.depleted);
-  console.table(result.simulation.yearlyRows);
+  console.log("Scenario count:", result.scenarios.length);
+  console.table(
+    result.scenarios.map((scenario) => ({
+      startYear: scenario.startYear,
+      endYear: scenario.endYear,
+      depleted: scenario.result.depleted,
+      terminalNominal:
+        scenario.result.pathNominal[scenario.result.pathNominal.length - 1] ?? 0,
+      terminalReal:
+        scenario.result.pathReal[scenario.result.pathReal.length - 1] ?? 0
+    }))
+  );
 
   console.groupEnd();
 };
