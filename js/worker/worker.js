@@ -1,72 +1,87 @@
-const worker = new Worker("./js/worker/worker.js", { type: "module" });
+import {
+  loadHistoricalSeries,
+  generateRollingHistoricalWindows,
+  createHistoricalWindowLookup,
+  createHistoricalReturnsProvider
+} from "../model/returns/historical.js";
 
-worker.onmessage = (event) => {
-  const { ok, result, error } = event.data || {};
+import { runRetirementSimulation } from "../model/simulator.js";
 
-  if (!ok) {
-    console.error("Worker error:", error);
+self.onmessage = async (event) => {
+  const { type, inputs } = event.data || {};
+
+  if (type !== "run") {
     return;
   }
 
-  console.group("Worker response");
+  try {
+    const years = normaliseYears(inputs?.years);
 
-  console.group("Dataset summary");
-  console.log("Series length:", result.dataset.seriesLength);
-  console.log("Window count:", result.dataset.windowCount);
-  console.table(result.dataset.windows);
-  console.groupEnd();
+    const series = await loadHistoricalSeries();
+    const windows = generateRollingHistoricalWindows(series, years);
+    const windowSummary = createHistoricalWindowLookup(windows);
 
-  console.group("Aggregate results");
-  console.log("Success rate:", result.summary.successRate);
-  console.log("Median terminal wealth:", result.summary.medianTerminalWealth);
-  console.log("10th percentile:", result.summary.percentile10);
-  console.log("90th percentile:", result.summary.percentile90);
-  console.groupEnd();
+    console.group("Historical dataset loaded");
+    console.log("Series length:", series.length);
+    console.log("Requested window length:", years);
+    console.log("Generated rolling windows:", windows.length);
+    console.table(windowSummary);
+    console.groupEnd();
 
-  console.group("Scenario results");
-  console.log("Scenario count:", result.scenarios.length);
-  console.table(
-    result.scenarios.map((scenario) => ({
-      startYear: scenario.startYear,
-      endYear: scenario.endYear,
-      depleted: scenario.result.depleted,
-      terminalNominal:
-        scenario.result.pathNominal[
-          scenario.result.pathNominal.length - 1
-        ] ?? 0,
-      terminalReal:
-        scenario.result.pathReal[
-          scenario.result.pathReal.length - 1
-        ] ?? 0
-    }))
-  );
-  console.groupEnd();
+    const scenarios = [];
 
-  console.groupEnd();
-};
+    for (const window of windows) {
+      const returnsProvider = createHistoricalReturnsProvider(window.rows);
 
-worker.onerror = (event) => {
-  console.error("Worker crashed");
-  console.error("Message:", event.message);
-  console.error("File:", event.filename);
-  console.error("Line:", event.lineno);
-  console.error("Column:", event.colno);
-  console.error("Error object:", event.error);
-};
+      const simulation = runRetirementSimulation({
+        inputs: {
+          ...inputs,
+          years
+        },
+        returnsProvider
+      });
 
-worker.postMessage({
-  type: "run",
-  inputs: {
-    initialPortfolio: 1000000,
-    annualSpending: 40000,
-    years: 30,
-    equityAllocation: 0.6,
-    bondAllocation: 0.3,
-    cashAllocation: 0.1,
-    fees: 0.002,
-    rebalance: false,
-    guardrails: false,
-    statePensionIncome: 0,
-    statePensionStartYear: 0
+      scenarios.push({
+        startYear: window.startYear,
+        endYear: window.endYear,
+        result: simulation
+      });
+    }
+
+    console.log("Historical scenarios run:", scenarios.length);
+
+    self.postMessage({
+      ok: true,
+      result: {
+        dataset: {
+          years,
+          seriesLength: series.length,
+          windowCount: windows.length,
+          windows: windowSummary
+        },
+        scenarios
+      }
+    });
+  } catch (error) {
+    self.postMessage({
+      ok: false,
+      error: error instanceof Error ? error.message : "Unknown worker error."
+    });
   }
-});
+};
+
+function normaliseYears(value) {
+  const fallbackYears = 30;
+
+  if (value == null) {
+    return fallbackYears;
+  }
+
+  const years = Number(value);
+
+  if (!Number.isInteger(years) || years <= 0) {
+    throw new Error("inputs.years must be a positive integer.");
+  }
+
+  return years;
+}
