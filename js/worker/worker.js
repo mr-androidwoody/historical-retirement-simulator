@@ -32,23 +32,37 @@ self.onmessage = async (event) => {
     const scenarios = [];
 
     for (const window of windows) {
-      console.log("Running scenario:", window.startYear, "-", window.endYear);
+      try {
+        console.log("Running scenario:", window.startYear, "-", window.endYear);
     
-      const returnsProvider = createHistoricalReturnsProvider(window.rows);
+        const returnsProvider = createHistoricalReturnsProvider(window.rows);
     
-      const simulation = runRetirementSimulation({
-        inputs: {
-          ...inputs,
-          years
-        },
-        returnsProvider
-      });
+        const simulation = runRetirementSimulation({
+          inputs: {
+            ...inputs,
+            years
+          },
+          returnsProvider
+        });
     
-      scenarios.push({
-        startYear: window.startYear,
-        endYear: window.endYear,
-        result: simulation
-      });
+        scenarios.push({
+          startYear: window.startYear,
+          endYear: window.endYear,
+          result: simulation
+        });
+      } catch (error) {
+        console.error("Scenario failed:", window.startYear, "-", window.endYear);
+        console.error(error);
+    
+        self.postMessage({
+          ok: false,
+          error: `Scenario failed for ${window.startYear}-${window.endYear}: ${
+            error instanceof Error ? error.message : "Unknown error"
+          }`
+        });
+    
+        return;
+      }
     }
 
     console.log("Historical scenarios run:", scenarios.length);
