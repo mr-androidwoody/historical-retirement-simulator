@@ -1,5 +1,5 @@
 console.log("APP VERSION 4");
-const worker = new Worker("./js/worker/worker.js?v=4", { type: "module" });
+const worker = new Worker("./js/worker/worker.js?v=5", { type: "module" });
 
 worker.onmessage = (event) => {
   const { ok, result, error } = event.data || {};
