@@ -1,4 +1,5 @@
 import { renderResultsSummary } from "./ui/results-view.js";
+import { renderScenarioTable } from "./ui/yearly-table.js";
 
 console.log("APP VERSION 4");
 const worker = new Worker("./js/worker/worker.js?v=6", { type: "module" });
@@ -18,10 +19,16 @@ worker.onmessage = (event) => {
   console.groupEnd();
 
   const resultsSummaryElement = document.getElementById("resultsSummary");
+  const scenarioTableElement = document.getElementById("scenarioTable");
 
   renderResultsSummary({
     container: resultsSummaryElement,
     summary: result.summary
+  });
+
+  renderScenarioTable({
+    container: scenarioTableElement,
+    scenarios: result.scenarios
   });
 
   console.group("Scenario results");
