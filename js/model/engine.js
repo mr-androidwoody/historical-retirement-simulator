@@ -1,5 +1,4 @@
 export function simulateScenario({ inputs, returnsProvider }) {
-
   const initialPortfolio = Number(
     inputs.startingPortfolio ?? inputs.initialPortfolio ?? 0
   );
@@ -64,8 +63,8 @@ export function simulateScenario({ inputs, returnsProvider }) {
         yearlyRows,
         pathNominal,
         pathReal,
-        terminalNominal: portfolio,
-        terminalReal: realPortfolio,
+        terminalNominal: pathNominal[pathNominal.length - 1] ?? 0,
+        terminalReal: pathReal[pathReal.length - 1] ?? 0,
         depleted: true
       };
     }
@@ -75,8 +74,8 @@ export function simulateScenario({ inputs, returnsProvider }) {
     yearlyRows,
     pathNominal,
     pathReal,
-    terminalNominal: pathNominal[pathNominal.length - 1] ?? initialPortfolio,
-    terminalReal: pathReal[pathReal.length - 1] ?? initialPortfolio,
+    terminalNominal: pathNominal[pathNominal.length - 1] ?? 0,
+    terminalReal: pathReal[pathReal.length - 1] ?? 0,
     depleted: false
   };
 }
