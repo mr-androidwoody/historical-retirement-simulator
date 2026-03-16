@@ -28,7 +28,10 @@ export function aggregateScenarioResults(scenarios) {
 
   return {
     scenarioCount: safeScenarios.length,
-    successRate: safeScenarios.length > 0 ? (safeScenarios.length - failures) / safeScenarios.length : 0,
+    successRate:
+      safeScenarios.length > 0
+        ? (safeScenarios.length - failures) / safeScenarios.length
+        : 0,
     medianTerminalWealth: percentile(terminalValues, 0.5),
     percentile10: percentile(terminalValues, 0.1),
     percentile90: percentile(terminalValues, 0.9)
