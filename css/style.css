@@ -341,6 +341,11 @@ main > p {
   stroke: #0f766e;
 }
 
+.chart-band {
+  fill: rgba(37, 99, 235, 0.12);
+  stroke: none;
+}
+
 @media (max-width: 640px) {
   .chart-section {
     padding: var(--space-4);
