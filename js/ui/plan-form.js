@@ -382,52 +382,56 @@ function renderPlanFormMarkup(values = DEFAULTS) {
         </section>
 
         <section class="plan-form-section">
-          <h4 class="plan-form-section-title">Guardrails</h4>
-
-          <label class="field field-checkbox">
-            <input id="useGuardrails" type="checkbox"${values.useGuardrails ? " checked" : ""} />
-            <span>Use guardrails</span>
-          </label>
-
-          <label class="field">
-            <span class="field-label">Guardrail floor (%)</span>
-            <input
-              id="guardrailFloor"
-              type="text"
-              inputmode="decimal"
-              value="${formatNumberInput(values.guardrailFloor)}"
-            />
-          </label>
-
-          <label class="field">
-            <span class="field-label">Guardrail ceiling (%)</span>
-            <input
-              id="guardrailCeiling"
-              type="text"
-              inputmode="decimal"
-              value="${formatNumberInput(values.guardrailCeiling)}"
-            />
-          </label>
-
-          <label class="field">
-            <span class="field-label">Guardrail cut (%)</span>
-            <input
-              id="guardrailCut"
-              type="text"
-              inputmode="decimal"
-              value="${formatNumberInput(values.guardrailCut)}"
-            />
-          </label>
-
-          <label class="field">
-            <span class="field-label">Guardrail raise (%)</span>
-            <input
-              id="guardrailRaise"
-              type="text"
-              inputmode="decimal"
-              value="${formatNumberInput(values.guardrailRaise)}"
-            />
-          </label>
+          <div class="plan-form-section-title-row">
+            <h4 class="plan-form-section-title">Guardrails</h4>
+        
+            <label class="inline-checkbox">
+              <input id="useGuardrails" type="checkbox"${values.useGuardrails ? " checked" : ""} />
+              <span>Use guardrails</span>
+            </label>
+          </div>
+        
+          <div class="field-grid">
+            <label class="field">
+              <span class="field-label">Guardrail floor (%)</span>
+              <input
+                id="guardrailFloor"
+                type="text"
+                inputmode="decimal"
+                value="${formatNumberInput(values.guardrailFloor)}"
+              />
+            </label>
+        
+            <label class="field">
+              <span class="field-label">Guardrail ceiling (%)</span>
+              <input
+                id="guardrailCeiling"
+                type="text"
+                inputmode="decimal"
+                value="${formatNumberInput(values.guardrailCeiling)}"
+              />
+            </label>
+        
+            <label class="field">
+              <span class="field-label">Guardrail cut (%)</span>
+              <input
+                id="guardrailCut"
+                type="text"
+                inputmode="decimal"
+                value="${formatNumberInput(values.guardrailCut)}"
+              />
+            </label>
+        
+            <label class="field">
+              <span class="field-label">Guardrail raise (%)</span>
+              <input
+                id="guardrailRaise"
+                type="text"
+                inputmode="decimal"
+                value="${formatNumberInput(values.guardrailRaise)}"
+              />
+            </label>
+          </div>
         </section>
 
         <section class="plan-form-section">
