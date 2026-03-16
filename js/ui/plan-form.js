@@ -278,47 +278,49 @@ function renderPlanFormMarkup(values = DEFAULTS) {
 
         <section class="plan-form-section">
           <h4 class="plan-form-section-title">Pension and display</h4>
-
-          <label class="field">
-            <span class="field-label">State pension today (£)</span>
-            <input
-              id="statePensionToday"
-              type="text"
-              inputmode="decimal"
-              value="${formatNumberInput(values.statePensionToday)}"
-            />
-          </label>
-
-          <label class="field">
-            <span class="field-label">State pension start age</span>
-            <input
-              id="statePensionStartAge"
-              type="text"
-              inputmode="numeric"
-              value="${formatNumberInput(values.statePensionStartAge)}"
-            />
-          </label>
-
-          <label class="field field-checkbox">
-            <input id="includeStatePension" type="checkbox"${values.includeStatePension ? " checked" : ""} />
-            <span>Include state pension</span>
-          </label>
-
-          <label class="field">
-            <span class="field-label">Spending basis</span>
-            <select id="spendingBasis">
-              <option value="real"${values.spendingBasis === "real" ? " selected" : ""}>Real</option>
-              <option value="nominal"${values.spendingBasis === "nominal" ? " selected" : ""}>Nominal</option>
-            </select>
-          </label>
-
-          <label class="field">
-            <span class="field-label">Display values</span>
-            <select id="displayValues">
-              <option value="real"${values.displayValues === "real" ? " selected" : ""}>Real</option>
-              <option value="nominal"${values.displayValues === "nominal" ? " selected" : ""}>Nominal</option>
-            </select>
-          </label>
+        
+          <div class="field-grid">
+            <label class="field">
+              <span class="field-label">State pension today (£)</span>
+              <input
+                id="statePensionToday"
+                type="text"
+                inputmode="decimal"
+                value="${formatNumberInput(values.statePensionToday)}"
+              />
+            </label>
+        
+            <label class="field">
+              <span class="field-label">State pension start age</span>
+              <input
+                id="statePensionStartAge"
+                type="text"
+                inputmode="numeric"
+                value="${formatNumberInput(values.statePensionStartAge)}"
+              />
+            </label>
+        
+            <label class="field field-checkbox">
+              <input id="includeStatePension" type="checkbox"${values.includeStatePension ? " checked" : ""} />
+              <span>Include state pension</span>
+            </label>
+        
+            <label class="field">
+              <span class="field-label">Spending basis</span>
+              <select id="spendingBasis">
+                <option value="real"${values.spendingBasis === "real" ? " selected" : ""}>Real</option>
+                <option value="nominal"${values.spendingBasis === "nominal" ? " selected" : ""}>Nominal</option>
+              </select>
+            </label>
+        
+            <label class="field">
+              <span class="field-label">Display values</span>
+              <select id="displayValues">
+                <option value="real"${values.displayValues === "real" ? " selected" : ""}>Real</option>
+                <option value="nominal"${values.displayValues === "nominal" ? " selected" : ""}>Nominal</option>
+              </select>
+            </label>
+          </div>
         </section>
 
         <section class="plan-form-section">
