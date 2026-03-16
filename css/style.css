@@ -45,10 +45,11 @@ body {
   line-height: 1.5;
 }
 
-main {
+main,
+.app-shell {
   width: min(calc(100% - 32px), var(--max-width));
   margin: 0 auto;
-  padding: 48px 0 64px;
+  padding: 32px 0 56px;
 }
 
 h1,
@@ -58,16 +59,16 @@ p {
   margin-top: 0;
 }
 
-h1 {
-  margin-bottom: var(--space-2);
+.page-title {
+  margin: 0;
   font-size: clamp(2rem, 4vw, 3rem);
   line-height: 1.1;
   letter-spacing: -0.03em;
 }
 
-main > p {
+.page-subtitle {
   max-width: 760px;
-  margin-bottom: var(--space-6);
+  margin: 12px 0 0;
   color: var(--text-muted);
   font-size: 1.05rem;
 }
@@ -352,20 +353,50 @@ main > p {
 /* Responsive */
 
 @media (max-width: 980px) {
+  .top-summary-bar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .planner-grid {
+    grid-template-columns: 1fr;
+  }
+
   .results-summary-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 640px) {
-  main {
+  main,
+  .app-shell {
     width: min(calc(100% - 24px), var(--max-width));
     padding: 32px 0 48px;
   }
 
+  .top-summary-bar {
+    grid-template-columns: 1fr;
+  }
+
+  .screen-tabs {
+    flex-wrap: wrap;
+  }
+
+  .panel-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .panel-actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
   .results-summary,
   .chart-section,
-  .scenario-table-section {
+  .scenario-table-section,
+  .planner-card,
+  .panel-toolbar,
+  .top-summary-card {
     padding: var(--space-4);
   }
 
