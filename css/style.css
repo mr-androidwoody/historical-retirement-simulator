@@ -744,16 +744,10 @@ main,
   justify-content: flex-end;
 }
 
-/* Two-column grid inside each person card. */
 .person-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
-}
-
-/* Keep the pension checkbox row aligned across both cards. */
-.person-grid .field-checkbox-inline {
-  grid-column: 1 / -1;
 }
 
 .field-checkbox-inline {
