@@ -115,3 +115,22 @@ function validateHistoricalDataset(data) {
     }
   }
 }
+
+export function createHistoricalReturnsProvider(windowRows) {
+  return {
+    getYearReturns(yearIndex) {
+      const row = windowRows[yearIndex];
+
+      if (!row) {
+        throw new Error(`Missing historical return row for year index ${yearIndex}.`);
+      }
+
+      return {
+        equities: row.returns.equities,
+        bonds: row.returns.bonds,
+        cashlike: row.returns.cashlike,
+        inflation: row.inflation
+      };
+    }
+  };
+}
