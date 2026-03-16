@@ -8,6 +8,8 @@ import {
 import { runRetirementSimulation } from "../model/simulator.js";
 import { aggregateScenarioResults } from "../model/analysis/aggregator.js";
 
+console.log("WORKER VERSION 2");
+
 self.onmessage = async (event) => {
   const { type, inputs } = event.data || {};
 
