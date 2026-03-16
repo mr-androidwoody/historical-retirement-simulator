@@ -72,6 +72,10 @@ main > p {
   font-size: 1.05rem;
 }
 
+/* ---------------------------
+   Summary cards
+---------------------------- */
+
 .results-summary {
   padding: var(--space-5);
   background: var(--surface);
@@ -119,6 +123,82 @@ main > p {
   word-break: break-word;
 }
 
+/* ---------------------------
+   Scenario table
+---------------------------- */
+
+.scenario-table-section {
+  margin-top: var(--space-6);
+  padding: var(--space-5);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+}
+
+.scenario-table-title {
+  margin-bottom: var(--space-4);
+  font-size: 1.25rem;
+  letter-spacing: -0.02em;
+}
+
+.scenario-table-wrapper {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-muted);
+}
+
+.scenario-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 720px;
+}
+
+.scenario-table thead th {
+  padding: 14px 16px;
+  background: #eef3f8;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+
+.scenario-table tbody td {
+  padding: 14px 16px;
+  font-size: 0.95rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.scenario-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.scenario-table tbody tr:hover td {
+  background: #f8fbff;
+}
+
+.scenario-table td.numeric {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.scenario-table td.is-success {
+  font-weight: 600;
+  color: #1f6f43;
+}
+
+.scenario-table td.is-depleted {
+  font-weight: 600;
+  color: #9f2d2d;
+}
+
+/* ---------------------------
+   Responsive behaviour
+---------------------------- */
+
 @media (max-width: 980px) {
   .results-summary-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -132,6 +212,10 @@ main > p {
   }
 
   .results-summary {
+    padding: var(--space-4);
+  }
+
+  .scenario-table-section {
     padding: var(--space-4);
   }
 
