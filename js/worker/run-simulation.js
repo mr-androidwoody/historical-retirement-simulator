@@ -2,12 +2,16 @@ import { runHistoricalMode } from "./modes/run-historical.js";
 import { runDeterministicMode } from "./modes/run-deterministic.js";
 
 export function runSimulationByMode({ mode = "historical", inputs }) {
+  let result;
+
   switch (mode) {
     case "historical":
-      return runHistoricalMode(inputs);
+      result = runHistoricalMode(inputs);
+      break;
 
     case "deterministic":
-      return runDeterministicMode(inputs);
+      result = runDeterministicMode(inputs);
+      break;
 
     case "montecarlo":
       throw new Error("Monte Carlo mode is not implemented yet.");
@@ -15,4 +19,9 @@ export function runSimulationByMode({ mode = "historical", inputs }) {
     default:
       throw new Error(`Unsupported simulation mode: ${mode}`);
   }
+
+  return {
+    mode,
+    ...result
+  };
 }
