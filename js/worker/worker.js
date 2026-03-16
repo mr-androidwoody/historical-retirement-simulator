@@ -32,8 +32,10 @@ self.onmessage = async (event) => {
     const scenarios = [];
 
     for (const window of windows) {
+      console.log("Running scenario:", window.startYear, "-", window.endYear);
+    
       const returnsProvider = createHistoricalReturnsProvider(window.rows);
-
+    
       const simulation = runRetirementSimulation({
         inputs: {
           ...inputs,
@@ -41,7 +43,7 @@ self.onmessage = async (event) => {
         },
         returnsProvider
       });
-
+    
       scenarios.push({
         startYear: window.startYear,
         endYear: window.endYear,
