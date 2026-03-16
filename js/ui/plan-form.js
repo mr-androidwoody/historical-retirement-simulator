@@ -138,9 +138,9 @@ function renderPersonCard(person, index) {
         ${
           showIncludeToggle
             ? `
-              <label class="field-checkbox person-include-toggle">
+              <label class="inline-checkbox person-include-toggle">
                 <input id="includePerson2" type="checkbox"${person.include ? " checked" : ""} />
-                <span>Include person 2</span>
+                <span>Include person ${personNumber}</span>
               </label>
             `
             : ""
