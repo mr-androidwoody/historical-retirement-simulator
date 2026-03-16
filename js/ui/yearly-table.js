@@ -26,18 +26,16 @@ function formatDepleted(value) {
 }
 
 function buildScenarioRow(scenario) {
-  const result = scenario?.result ?? scenario ?? {};
-
-  const terminalNominal =
-    toFiniteNumber(result.terminalNominal) || getLastValue(result.pathNominal);
-
-  const terminalReal =
-    toFiniteNumber(result.terminalReal) || getLastValue(result.pathReal);
+    const terminalNominal =
+      toFiniteNumber(scenario?.terminalNominal) ?? getLastValue(scenario?.pathNominal);
+    
+    const terminalReal =
+      toFiniteNumber(scenario?.terminalReal) ?? getLastValue(scenario?.pathReal);
 
   return {
     startYear: scenario?.startYear ?? 0,
     endYear: scenario?.endYear ?? 0,
-    depleted: Boolean(result.depleted),
+    depleted: Boolean(scenario?.depleted),
     terminalNominal,
     terminalReal
   };
