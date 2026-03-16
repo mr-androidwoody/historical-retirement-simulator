@@ -3,28 +3,20 @@ import { createMonteCarloReturnsProvider } from "../../model/returns/montecarlo.
 import { aggregateResults } from "../../model/analysis/aggregator.js";
 
 export function runMonteCarloMode(inputs) {
-  const scenarioCount = inputs.monteCarloRuns || 1000;
-
-  const scenarios = [];
-
-  for (let i = 0; i < scenarioCount; i++) {
-    const returnsProvider = createMonteCarloReturnsProvider(inputs);
-
-    const scenario = simulateScenario({
-      inputs,
-      returnsProvider
-    });
-
-    scenarios.push({
-      scenarioId: i + 1,
-      ...scenario
-    });
-  }
-
-  const summary = aggregateResults(scenarios);
-
   return {
-    scenarios,
-    summary
+    scenarios: [],
+    summary: {
+      successRate: 0,
+      medianTerminalWealth: 0,
+      p10TerminalWealth: 0,
+      p90TerminalWealth: 0,
+      scenarioCount: 0,
+      test: {
+        simulateScenarioLoaded: typeof simulateScenario === "function",
+        createMonteCarloReturnsProviderLoaded:
+          typeof createMonteCarloReturnsProvider === "function",
+        aggregateResultsLoaded: typeof aggregateResults === "function"
+      }
+    }
   };
 }
