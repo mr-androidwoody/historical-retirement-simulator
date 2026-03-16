@@ -1,14 +1,14 @@
 export function simulateScenario({ inputs, returnsProvider }) {
 
-  const {
-    initialPortfolio,
-    annualSpending,
-    years,
-    equityAllocation,
-    bondAllocation,
-    cashAllocation,
-    fees
-  } = inputs;
+  const initialPortfolio = Number(inputs.initialPortfolio ?? 0);
+  const annualSpending = Number(inputs.annualSpending ?? 0);
+  const years = Number(inputs.years ?? 0);
+
+  const equityAllocation = Number(inputs.equityAllocation ?? 0);
+  const bondAllocation = Number(inputs.bondAllocation ?? 0);
+  const cashAllocation = Number(inputs.cashAllocation ?? 0);
+
+  const fees = Number(inputs.fees ?? 0);
 
   let portfolio = initialPortfolio;
 
