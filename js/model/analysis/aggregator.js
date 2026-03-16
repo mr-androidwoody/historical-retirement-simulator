@@ -1,36 +1,40 @@
-function toNumber(value) {
-  return Number.isFinite(value) ? value : 0;
+function toFiniteNumber(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : 0;
+}
+
+function getLastNumber(values) {
+  if (!Array.isArray(values) || values.length === 0) {
+    return 0;
+  }
+
+  return toFiniteNumber(values[values.length - 1]);
 }
 
 function getTerminalWealth(scenario) {
-  if (!scenario || !Array.isArray(scenario.yearly)) {
+  if (!scenario || typeof scenario !== "object") {
     return 0;
   }
 
-  const lastYear = scenario.yearly[scenario.yearly.length - 1];
+  const realTerminalWealth = getLastNumber(scenario.pathReal);
 
-  if (!lastYear) {
-    return 0;
+  if (realTerminalWealth !== 0) {
+    return realTerminalWealth;
   }
 
-  return toNumber(lastYear.endingPortfolio);
+  return getLastNumber(scenario.pathNominal);
 }
 
-function getSuccessFlag(scenario) {
-  if (!scenario) {
+function isSuccessfulScenario(scenario) {
+  if (!scenario || typeof scenario !== "object") {
     return false;
   }
 
-  if (typeof scenario.success === "boolean") {
-    return scenario.success;
+  if (typeof scenario.depleted === "boolean") {
+    return scenario.depleted === false;
   }
 
-  if (!Array.isArray(scenario.yearly) || scenario.yearly.length === 0) {
-    return false;
-  }
-
-  const lastYear = scenario.yearly[scenario.yearly.length - 1];
-  return toNumber(lastYear.endingPortfolio) > 0;
+  return getTerminalWealth(scenario) > 0;
 }
 
 function percentileFromSorted(sortedValues, percentile) {
@@ -42,8 +46,8 @@ function percentileFromSorted(sortedValues, percentile) {
     return sortedValues[0];
   }
 
-  const clamped = Math.max(0, Math.min(100, percentile));
-  const index = (clamped / 100) * (sortedValues.length - 1);
+  const clampedPercentile = Math.max(0, Math.min(100, percentile));
+  const index = (clampedPercentile / 100) * (sortedValues.length - 1);
 
   const lowerIndex = Math.floor(index);
   const upperIndex = Math.ceil(index);
@@ -52,9 +56,9 @@ function percentileFromSorted(sortedValues, percentile) {
     return sortedValues[lowerIndex];
   }
 
-  const weight = index - lowerIndex;
   const lowerValue = sortedValues[lowerIndex];
   const upperValue = sortedValues[upperIndex];
+  const weight = index - lowerIndex;
 
   return lowerValue + (upperValue - lowerValue) * weight;
 }
@@ -76,7 +80,7 @@ export function aggregateScenarioResults(scenarios) {
     .map(getTerminalWealth)
     .sort((a, b) => a - b);
 
-  const successCount = safeScenarios.filter(getSuccessFlag).length;
+  const successCount = safeScenarios.filter(isSuccessfulScenario).length;
 
   return {
     scenarioCount: safeScenarios.length,
