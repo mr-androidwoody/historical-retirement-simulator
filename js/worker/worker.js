@@ -6,9 +6,8 @@ import {
 } from "../model/returns/historical.js";
 
 import { runRetirementSimulation } from "../model/simulator.js";
-import { aggregateScenarioResults } from "../model/analysis/aggregator.js";
 
-console.log("WORKER VERSION 3");
+console.log("WORKER VERSION 4");
 
 self.onmessage = async (event) => {
   const { type, inputs } = event.data || {};
@@ -70,23 +69,19 @@ self.onmessage = async (event) => {
     }
 
     console.log("Finished scenario loop");
-
     console.log("Historical scenarios run:", scenarios.length);
 
-   const summary = aggregateScenarioResults(scenarios);
-
-   console.log("Aggregate summary:", summary);
-
-    result: {
-      dataset: {
-        years,
-        seriesLength: series.length,
-        windowCount: windows.length,
-        windows: windowSummary
-      },
-      summary,
-      scenarios
-    }
+    self.postMessage({
+      ok: true,
+      result: {
+        dataset: {
+          years,
+          seriesLength: series.length,
+          windowCount: windows.length,
+          windows: windowSummary
+        },
+        scenarios
+      }
     });
   } catch (error) {
     self.postMessage({
