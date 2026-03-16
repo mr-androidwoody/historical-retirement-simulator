@@ -1,5 +1,5 @@
-console.log("APP VERSION 3");
-const worker = new Worker("./js/worker/worker.js?v=3", { type: "module" });
+console.log("APP VERSION 4");
+const worker = new Worker("./js/worker/worker.js?v=4", { type: "module" });
 
 worker.onmessage = (event) => {
   const { ok, result, error } = event.data || {};
@@ -15,14 +15,6 @@ worker.onmessage = (event) => {
   console.log("Series length:", result.dataset.seriesLength);
   console.log("Window count:", result.dataset.windowCount);
   console.table(result.dataset.windows);
-  console.groupEnd();
-
-  console.group("Aggregate results");
-  console.log("Scenario count:", result.summary.scenarioCount);
-  console.log("Success rate:", result.summary.successRate);
-  console.log("Median terminal wealth:", result.summary.medianTerminalWealth);
-  console.log("10th percentile:", result.summary.percentile10);
-  console.log("90th percentile:", result.summary.percentile90);
   console.groupEnd();
 
   console.group("Scenario results");
