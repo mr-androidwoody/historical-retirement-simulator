@@ -16,6 +16,14 @@ worker.onmessage = (event) => {
   console.table(result.dataset.windows);
   console.groupEnd();
 
+  console.group("Aggregate results");
+  console.log("Scenario count:", result.summary.scenarioCount);
+  console.log("Success rate:", result.summary.successRate);
+  console.log("Median terminal wealth:", result.summary.medianTerminalWealth);
+  console.log("10th percentile:", result.summary.percentile10);
+  console.log("90th percentile:", result.summary.percentile90);
+  console.groupEnd();
+
   console.group("Scenario results");
   console.log("Scenario count:", result.scenarios.length);
   console.table(
