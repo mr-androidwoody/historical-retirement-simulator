@@ -1,4 +1,4 @@
-const DATA_URL = "./data/global-market-history.composite.json";
+const DATA_URL = new URL("../../../data/global-market-history.composite.json", import.meta.url);
 
 let historicalDatasetPromise = null;
 
