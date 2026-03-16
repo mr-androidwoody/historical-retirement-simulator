@@ -40,13 +40,24 @@ function formatCurrencyCompact(value) {
   }).format(number);
 }
 
-function buildPercentilePaths(scenarios) {
+function getScenarioPath(scenario, mode) {
+  if (!scenario || !scenario.result) {
+    return null;
+  }
+
+  const pathKey = mode === "nominal" ? "pathNominal" : "pathReal";
+  const path = scenario.result[pathKey];
+
+  return Array.isArray(path) && path.length > 0 ? path : null;
+}
+
+function buildPercentilePaths(scenarios, mode) {
   if (!Array.isArray(scenarios) || scenarios.length === 0) {
     return [];
   }
 
   const validPaths = scenarios
-    .map((scenario) => scenario?.result?.pathReal)
+    .map((scenario) => getScenarioPath(scenario, mode))
     .filter((path) => Array.isArray(path) && path.length > 0);
 
   if (validPaths.length === 0) {
@@ -63,7 +74,7 @@ function buildPercentilePaths(scenarios) {
       .sort((a, b) => a - b);
 
     rows.push({
-      year: index,
+      year: index + 1,
       p10: percentileFromSorted(valuesAtIndex, 10),
       p50: percentileFromSorted(valuesAtIndex, 50),
       p90: percentileFromSorted(valuesAtIndex, 90)
@@ -109,19 +120,17 @@ function createSvgElement(tagName) {
   return document.createElementNS("http://www.w3.org/2000/svg", tagName);
 }
 
-export function renderHistoricalChart({ container, scenarios }) {
-  if (!container) {
-    return;
-  }
+function createToggleButton(label, mode, activeMode, onClick) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = `chart-toggle-button${mode === activeMode ? " is-active" : ""}`;
+  button.textContent = label;
+  button.setAttribute("aria-pressed", String(mode === activeMode));
+  button.addEventListener("click", () => onClick(mode));
+  return button;
+}
 
-  container.innerHTML = "";
-
-  const percentileRows = buildPercentilePaths(scenarios);
-
-  if (percentileRows.length === 0) {
-    return;
-  }
-
+function createChartSvg(percentileRows, mode) {
   const width = 980;
   const height = 420;
   const margin = { top: 24, right: 24, bottom: 48, left: 72 };
@@ -151,51 +160,13 @@ export function renderHistoricalChart({ container, scenarios }) {
     return margin.top + innerHeight - ratio * innerHeight;
   };
 
-  const section = document.createElement("section");
-  section.className = "chart-section";
-
-  const heading = document.createElement("h2");
-  heading.className = "chart-title";
-  heading.textContent = "Historical real portfolio paths";
-
-  const subheading = document.createElement("p");
-  subheading.className = "chart-subtitle";
-  subheading.textContent =
-    "10th percentile, median, and 90th percentile real portfolio values across all historical rolling windows.";
-
-  const legend = document.createElement("div");
-  legend.className = "chart-legend";
-
-  const legendItems = [
-    { label: "90th percentile", className: "is-p90" },
-    { label: "Median", className: "is-p50" },
-    { label: "10th percentile", className: "is-p10" }
-  ];
-
-  legendItems.forEach((item) => {
-    const legendItem = document.createElement("div");
-    legendItem.className = `chart-legend-item ${item.className}`;
-
-    const swatch = document.createElement("span");
-    swatch.className = "chart-legend-swatch";
-
-    const label = document.createElement("span");
-    label.textContent = item.label;
-
-    legendItem.append(swatch, label);
-    legend.appendChild(legendItem);
-  });
-
-  const chartWrapper = document.createElement("div");
-  chartWrapper.className = "chart-wrapper";
-
   const svg = createSvgElement("svg");
   svg.setAttribute("class", "historical-chart");
   svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
   svg.setAttribute("role", "img");
   svg.setAttribute(
     "aria-label",
-    "Historical real portfolio paths showing 10th percentile, median, and 90th percentile outcomes."
+    `Historical ${mode} portfolio paths showing 10th percentile, median, and 90th percentile outcomes.`
   );
 
   const yTicks = 5;
@@ -236,7 +207,7 @@ export function renderHistoricalChart({ container, scenarios }) {
     label.setAttribute("y", String(height - 14));
     label.setAttribute("text-anchor", "middle");
     label.setAttribute("class", "chart-axis-label");
-    label.textContent = `Year ${index}`;
+    label.textContent = `Year ${index + 1}`;
     svg.appendChild(label);
   });
 
@@ -279,7 +250,99 @@ export function renderHistoricalChart({ container, scenarios }) {
   p10Path.setAttribute("class", "chart-line chart-line-p10");
   svg.appendChild(p10Path);
 
-  chartWrapper.appendChild(svg);
-  section.append(heading, subheading, legend, chartWrapper);
+  return svg;
+}
+
+export function renderHistoricalChart({ container, scenarios }) {
+  if (!container) {
+    return;
+  }
+
+  container.innerHTML = "";
+
+  if (!Array.isArray(scenarios) || scenarios.length === 0) {
+    return;
+  }
+
+  const section = document.createElement("section");
+  section.className = "chart-section";
+
+  const header = document.createElement("div");
+  header.className = "chart-header";
+
+  const titleBlock = document.createElement("div");
+
+  const heading = document.createElement("h2");
+  heading.className = "chart-title";
+  heading.textContent = "Historical portfolio paths";
+
+  const subheading = document.createElement("p");
+  subheading.className = "chart-subtitle";
+  subheading.textContent =
+    "10th percentile, median, and 90th percentile portfolio values across all historical rolling windows.";
+
+  titleBlock.append(heading, subheading);
+
+  const toggle = document.createElement("div");
+  toggle.className = "chart-toggle";
+  toggle.setAttribute("role", "group");
+  toggle.setAttribute("aria-label", "Chart value mode");
+
+  const legend = document.createElement("div");
+  legend.className = "chart-legend";
+
+  const legendItems = [
+    { label: "90th percentile", className: "is-p90" },
+    { label: "Median", className: "is-p50" },
+    { label: "10th percentile", className: "is-p10" }
+  ];
+
+  legendItems.forEach((item) => {
+    const legendItem = document.createElement("div");
+    legendItem.className = `chart-legend-item ${item.className}`;
+
+    const swatch = document.createElement("span");
+    swatch.className = "chart-legend-swatch";
+
+    const label = document.createElement("span");
+    label.textContent = item.label;
+
+    legendItem.append(swatch, label);
+    legend.appendChild(legendItem);
+  });
+
+  const chartWrapper = document.createElement("div");
+  chartWrapper.className = "chart-wrapper";
+
+  let activeMode = "real";
+
+  function drawChart(mode) {
+    activeMode = mode;
+
+    const percentileRows = buildPercentilePaths(scenarios, mode);
+    chartWrapper.innerHTML = "";
+
+    if (percentileRows.length === 0) {
+      return;
+    }
+
+    chartWrapper.appendChild(createChartSvg(percentileRows, mode));
+
+    toggle.innerHTML = "";
+    toggle.append(
+      createToggleButton("Real", "real", activeMode, drawChart),
+      createToggleButton("Nominal", "nominal", activeMode, drawChart)
+    );
+
+    subheading.textContent =
+      mode === "nominal"
+        ? "10th percentile, median, and 90th percentile nominal portfolio values across all historical rolling windows."
+        : "10th percentile, median, and 90th percentile real portfolio values across all historical rolling windows.";
+  }
+
+  header.append(titleBlock, toggle);
+  section.append(header, legend, chartWrapper);
   container.appendChild(section);
+
+  drawChart(activeMode);
 }
