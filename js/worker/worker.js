@@ -1,23 +1,21 @@
-import { runSimulationByMode } from "./run-simulation.js";
-
 self.onmessage = (event) => {
-  const { type, mode = "historical", inputs } = event.data || {};
+  const { type } = event.data || {};
 
   if (type !== "run") {
     return;
   }
 
-  try {
-    const result = runSimulationByMode({
-      mode,
-      inputs
-    });
-
-    self.postMessage({ ok: true, result });
-  } catch (error) {
-    self.postMessage({
-      ok: false,
-      error: error instanceof Error ? error.message : "Unknown worker error."
-    });
-  }
+  self.postMessage({
+    ok: true,
+    result: {
+      scenarios: [],
+      summary: {
+        successRate: 0,
+        medianTerminalWealth: 0,
+        p10TerminalWealth: 0,
+        p90TerminalWealth: 0,
+        scenarioCount: 0
+      }
+    }
+  });
 };
