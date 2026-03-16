@@ -539,6 +539,134 @@ p {
   color: #9f2d2d;
 }
 
+/* Generated plan form */
+
+.planner-card-full {
+  width: 100%;
+}
+
+.plan-form {
+  width: 100%;
+}
+
+.plan-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+.plan-form-section {
+  padding: var(--space-4);
+  background: var(--surface-muted);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+}
+
+.plan-form-section-title {
+  margin: 0 0 var(--space-2);
+  font-size: 1.1rem;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.plan-form-section > .field + .field,
+.plan-form-section > .field-checkbox + .field,
+.plan-form-section > .field + .field-checkbox,
+.plan-form-section > .field-checkbox + .field-checkbox {
+  margin-top: 14px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.field-label {
+  color: var(--text);
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.field input[type="text"],
+.field input[type="number"],
+.field select {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 14px;
+  border: 1px solid #aebbd3;
+  border-radius: 12px;
+  background: #ffffff;
+  color: var(--text);
+  font: inherit;
+  font-size: 1rem;
+  line-height: 1.2;
+  outline: none;
+  transition: border-color 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
+  box-sizing: border-box;
+}
+
+.field input::placeholder {
+  color: #8a94a6;
+}
+
+.field input[type="text"]:hover,
+.field input[type="number"]:hover,
+.field select:hover {
+  border-color: #8fa2c6;
+}
+
+.field input[type="text"]:focus,
+.field input[type="number"]:focus,
+.field select:focus {
+  border-color: #2d5bff;
+  box-shadow: 0 0 0 3px rgba(45, 91, 255, 0.14);
+}
+
+.field-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+}
+
+.field-checkbox input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: #2d5bff;
+  flex: 0 0 auto;
+}
+
+.field-checkbox span {
+  color: var(--text);
+  font-size: 0.96rem;
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+@media (max-width: 980px) {
+  .plan-form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .plan-form-section {
+    padding: var(--space-3);
+    border-radius: 16px;
+  }
+
+  .field input[type="text"],
+  .field input[type="number"],
+  .field select {
+    min-height: 42px;
+    padding: 9px 12px;
+  }
+}
+
 /* Responsive */
 
 @media (max-width: 980px) {
