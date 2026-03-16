@@ -3,16 +3,53 @@ import { renderResultsSummary } from "./ui/results-view.js";
 import { renderScenarioTable } from "./ui/yearly-table.js";
 import { renderHistoricalChart } from "./ui/charts.js";
 
-const worker = new Worker("./js/worker/worker.js?v=debug2", { type: "module" });
+const WORKER_URL = "./js/worker/worker.js?v=debug3";
 
 const resultsSummaryElement = document.getElementById("resultsSummary");
 const scenarioTableElement = document.getElementById("scenarioTable");
 const historicalChartElement = document.getElementById("historicalChart");
+const planFormElement = document.getElementById("planForm");
+
+let worker = null;
+
+function createWorker() {
+  if (worker) {
+    worker.terminate();
+  }
+
+  worker = new Worker(WORKER_URL, { type: "module" });
+
+  worker.onmessage = handleWorkerMessage;
+  worker.onerror = handleWorkerError;
+
+  return worker;
+}
 
 function clearResults() {
   if (resultsSummaryElement) {
     resultsSummaryElement.innerHTML = "";
   }
+
+  if (scenarioTableElement) {
+    scenarioTableElement.innerHTML = "";
+  }
+
+  if (historicalChartElement) {
+    historicalChartElement.innerHTML = "";
+  }
+}
+
+function showLoading() {
+  if (!resultsSummaryElement) {
+    return;
+  }
+
+  resultsSummaryElement.innerHTML = `
+    <div class="card">
+      <h2>Running simulation</h2>
+      <p>Please wait…</p>
+    </div>
+  `;
 
   if (scenarioTableElement) {
     scenarioTableElement.innerHTML = "";
@@ -30,62 +67,110 @@ function showError(message) {
     resultsSummaryElement.innerHTML = `
       <div class="card error-card">
         <h2>Simulation error</h2>
-        <p>${message}</p>
+        <p>${escapeHtml(message)}</p>
       </div>
     `;
   }
 }
 
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function getScenarioResultObject(scenario) {
+  if (scenario && typeof scenario === "object") {
+    return scenario.result && typeof scenario.result === "object"
+      ? scenario.result
+      : scenario;
+  }
+
+  return {};
+}
+
 function getTerminalNominal(scenario) {
-  if (typeof scenario.terminalNominal === "number") {
+  const result = getScenarioResultObject(scenario);
+
+  if (typeof scenario?.terminalNominal === "number") {
     return scenario.terminalNominal;
   }
 
-  if (Array.isArray(scenario.pathNominal) && scenario.pathNominal.length > 0) {
-    return scenario.pathNominal[scenario.pathNominal.length - 1];
+  if (typeof result.terminalNominal === "number") {
+    return result.terminalNominal;
   }
 
-  if (
-    scenario.result &&
-    Array.isArray(scenario.result.pathNominal) &&
-    scenario.result.pathNominal.length > 0
-  ) {
-    return scenario.result.pathNominal[scenario.result.pathNominal.length - 1];
+  if (Array.isArray(result.pathNominal) && result.pathNominal.length > 0) {
+    return result.pathNominal[result.pathNominal.length - 1];
   }
 
   return 0;
 }
 
 function getTerminalReal(scenario) {
-  if (typeof scenario.terminalReal === "number") {
+  const result = getScenarioResultObject(scenario);
+
+  if (typeof scenario?.terminalReal === "number") {
     return scenario.terminalReal;
   }
 
-  if (Array.isArray(scenario.pathReal) && scenario.pathReal.length > 0) {
-    return scenario.pathReal[scenario.pathReal.length - 1];
+  if (typeof result.terminalReal === "number") {
+    return result.terminalReal;
   }
 
-  if (
-    scenario.result &&
-    Array.isArray(scenario.result.pathReal) &&
-    scenario.result.pathReal.length > 0
-  ) {
-    return scenario.result.pathReal[scenario.result.pathReal.length - 1];
+  if (Array.isArray(result.pathReal) && result.pathReal.length > 0) {
+    return result.pathReal[result.pathReal.length - 1];
   }
 
   return 0;
 }
 
 function getDepleted(scenario) {
-  if (typeof scenario.depleted === "boolean") {
+  const result = getScenarioResultObject(scenario);
+
+  if (typeof scenario?.depleted === "boolean") {
     return scenario.depleted;
   }
 
-  if (scenario.result && typeof scenario.result.depleted === "boolean") {
-    return scenario.result.depleted;
+  if (typeof result.depleted === "boolean") {
+    return result.depleted;
   }
 
   return false;
+}
+
+function normaliseScenarios(scenarios) {
+  if (!Array.isArray(scenarios)) {
+    return [];
+  }
+
+  return scenarios.map((scenario, index) => {
+    const result = getScenarioResultObject(scenario);
+
+    return {
+      ...scenario,
+      ...result,
+      scenarioId: scenario?.scenarioId ?? index + 1,
+      startYear: scenario?.startYear ?? "",
+      endYear: scenario?.endYear ?? "",
+      depleted: getDepleted(scenario),
+      terminalNominal: getTerminalNominal(scenario),
+      terminalReal: getTerminalReal(scenario)
+    };
+  });
+}
+
+function normaliseSummary(summary, scenarios) {
+  return {
+    successRate: Number(summary?.successRate ?? 0),
+    medianTerminalWealth: Number(summary?.medianTerminalWealth ?? 0),
+    p10TerminalWealth: Number(summary?.p10TerminalWealth ?? 0),
+    p90TerminalWealth: Number(summary?.p90TerminalWealth ?? 0),
+    scenarioCount: Number(summary?.scenarioCount ?? scenarios.length ?? 0)
+  };
 }
 
 function logScenarioResults(scenarios) {
@@ -93,13 +178,13 @@ function logScenarioResults(scenarios) {
   console.log("Scenario count:", scenarios.length);
 
   console.table(
-    scenarios.map((scenario, index) => ({
-      scenarioId: scenario.scenarioId ?? index + 1,
-      startYear: scenario.startYear ?? "",
-      endYear: scenario.endYear ?? "",
-      depleted: getDepleted(scenario),
-      terminalNominal: getTerminalNominal(scenario),
-      terminalReal: getTerminalReal(scenario)
+    scenarios.map((scenario) => ({
+      scenarioId: scenario.scenarioId,
+      startYear: scenario.startYear,
+      endYear: scenario.endYear,
+      depleted: scenario.depleted,
+      terminalNominal: scenario.terminalNominal,
+      terminalReal: scenario.terminalReal
     }))
   );
 
@@ -107,31 +192,42 @@ function logScenarioResults(scenarios) {
 }
 
 function renderResults(result) {
+  const scenarios = normaliseScenarios(result?.scenarios);
+  const summary = normaliseSummary(result?.summary, scenarios);
+
   renderResultsSummary({
     container: resultsSummaryElement,
-    summary: result.summary
+    summary
   });
 
   renderHistoricalChart({
     container: historicalChartElement,
-    scenarios: result.scenarios
+    scenarios
   });
 
   renderScenarioTable({
     container: scenarioTableElement,
-    scenarios: result.scenarios
+    scenarios
   });
+
+  logScenarioResults(scenarios);
 }
 
 function runSimulation(inputs) {
+  if (!worker) {
+    createWorker();
+  }
+
+  showLoading();
+
   worker.postMessage({
     type: "run",
-    mode: inputs.mode || "historical",
+    mode: inputs?.mode || "historical",
     inputs
   });
 }
 
-worker.onmessage = (event) => {
+function handleWorkerMessage(event) {
   const { ok, result, error } = event.data || {};
 
   if (!ok) {
@@ -141,31 +237,40 @@ worker.onmessage = (event) => {
   }
 
   console.group("Worker response");
-  console.log("Scenario results", result.scenarios);
-  console.log("Scenario summary", result.summary);
+  console.log("Scenario results", result?.scenarios);
+  console.log("Scenario summary", result?.summary);
   console.groupEnd();
 
-  renderResults(result);
-  logScenarioResults(result.scenarios || []);
-};
+  renderResults(result || { scenarios: [], summary: {} });
+}
 
-worker.onerror = (event) => {
+function handleWorkerError(event) {
   console.error("Worker crashed");
-  console.error("Message:", event.message);
-  console.error("File:", event.filename);
-  console.error("Line:", event.lineno);
-  console.error("Column:", event.colno);
-  console.error("Error object:", event.error);
+  console.error("Message:", event?.message);
+  console.error("File:", event?.filename);
+  console.error("Line:", event?.lineno);
+  console.error("Column:", event?.colno);
+  console.error("Error object:", event?.error);
 
   showError("The simulation worker crashed. Check the browser console for details.");
-};
+}
 
-bindPlanForm({
-  form: document.getElementById("planForm"),
-  onSubmit(inputs) {
-    runSimulation(inputs);
+function initialiseApp() {
+  if (!planFormElement) {
+    throw new Error('Plan form not found. Expected element with id "planForm".');
   }
-});
 
-const initialInputs = getPlanInputs(document.getElementById("planForm"));
-runSimulation(initialInputs);
+  createWorker();
+
+  bindPlanForm({
+    form: planFormElement,
+    onSubmit(inputs) {
+      runSimulation(inputs);
+    }
+  });
+
+  const initialInputs = getPlanInputs(planFormElement);
+  runSimulation(initialInputs);
+}
+
+initialiseApp();
