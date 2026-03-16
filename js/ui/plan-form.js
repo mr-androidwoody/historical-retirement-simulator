@@ -333,54 +333,57 @@ function renderPlanFormMarkup(values = DEFAULTS) {
         </section>
 
         <section class="plan-form-section">
-          <h4 class="plan-form-section-title">Allocation and fees</h4>
-
-          <label class="field">
-            <span class="field-label">Equity allocation (%)</span>
-            <input
-              id="equityAllocation"
-              type="text"
-              inputmode="decimal"
-              value="${formatNumberInput(values.equityAllocation)}"
-            />
-          </label>
-
-          <label class="field">
-            <span class="field-label">Bond allocation (%)</span>
-            <input
-              id="bondAllocation"
-              type="text"
-              inputmode="decimal"
-              value="${formatNumberInput(values.bondAllocation)}"
-            />
-          </label>
-
-          <label class="field">
-            <span class="field-label">Cash allocation (%)</span>
-            <input
-              id="cashAllocation"
-              type="text"
-              inputmode="decimal"
-              value="${formatNumberInput(values.cashAllocation)}"
-            />
-          </label>
-
-          <label class="field">
-            <span class="field-label">Annual fees (%)</span>
-            <input
-              id="annualFees"
-              type="text"
-              inputmode="decimal"
-              value="${formatNumberInput(values.annualFees)}"
-            />
-          </label>
-
-          <label class="field field-checkbox">
-            <input id="rebalance" type="checkbox"${values.rebalance ? " checked" : ""} />
-            <span>Rebalance annually</span>
-          </label>
+          <div class="plan-form-section-title-row">
+            <h4 class="plan-form-section-title">Allocation and fees</h4>
+        
+            <label class="inline-checkbox">
+              <input id="rebalance" type="checkbox"${values.rebalance ? " checked" : ""} />
+              <span>Rebalance annually</span>
+            </label>
+          </div>
+        
+          <div class="field-grid">
+            <label class="field">
+              <span class="field-label">Equity allocation (%)</span>
+              <input
+                id="equityAllocation"
+                type="text"
+                inputmode="decimal"
+                value="${formatNumberInput(values.equityAllocation)}"
+              />
+            </label>
+        
+            <label class="field">
+              <span class="field-label">Bond allocation (%)</span>
+              <input
+                id="bondAllocation"
+                type="text"
+                inputmode="decimal"
+                value="${formatNumberInput(values.bondAllocation)}"
+              />
+            </label>
+        
+            <label class="field">
+              <span class="field-label">Cash allocation (%)</span>
+              <input
+                id="cashAllocation"
+                type="text"
+                inputmode="decimal"
+                value="${formatNumberInput(values.cashAllocation)}"
+              />
+            </label>
+        
+            <label class="field">
+              <span class="field-label">Annual fees (%)</span>
+              <input
+                id="annualFees"
+                type="text"
+                inputmode="decimal"
+                value="${formatNumberInput(values.annualFees)}"
+              />
+            </label>
+          </div>
         </section>
-
         <section class="plan-form-section">
           <div class="plan-form-section-title-row">
             <h4 class="plan-form-section-title">Guardrails</h4>
