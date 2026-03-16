@@ -1,4 +1,4 @@
-const worker = new Worker("./js/worker/worker.js?v=2", { type: "module" });
+const worker = new Worker("./js/worker/worker.js?v=3", { type: "module" });
 
 worker.onmessage = (event) => {
   const { ok, result, error } = event.data || {};
