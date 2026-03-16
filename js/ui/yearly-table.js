@@ -26,9 +26,13 @@ function formatDepleted(value) {
 }
 
 function buildScenarioRow(scenario) {
-  const result = scenario?.result ?? {};
-  const terminalNominal = getLastValue(result.pathNominal);
-  const terminalReal = getLastValue(result.pathReal);
+  const result = scenario?.result ?? scenario ?? {};
+
+  const terminalNominal =
+    toFiniteNumber(result.terminalNominal) || getLastValue(result.pathNominal);
+
+  const terminalReal =
+    toFiniteNumber(result.terminalReal) || getLastValue(result.pathReal);
 
   return {
     startYear: scenario?.startYear ?? 0,
