@@ -1,4 +1,5 @@
 export function simulateScenario({ inputs, returnsProvider }) {
+
   const initialPortfolio = Number(
     inputs.startingPortfolio ?? inputs.initialPortfolio ?? 0
   );
