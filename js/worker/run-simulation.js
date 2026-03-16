@@ -1,5 +1,5 @@
-import { runHistoricalMode } from "./modes/run-historical.js";
-import { runMonteCarloMode } from "./modes/run-montecarlo.js";
+import { runHistoricalMode } from "./modes/run-historical.js?v=debug9";
+import { runMonteCarloMode } from "./modes/run-montecarlo.js?v=debug9";
 
 export function runSimulationByMode({ mode = "historical", inputs }) {
   return {
