@@ -1,8 +1,11 @@
 import {
   loadHistoricalSeries,
   generateRollingHistoricalWindows,
-  createHistoricalWindowLookup
+  createHistoricalWindowLookup,
+  createHistoricalReturnsProvider
 } from "../model/returns/historical.js";
+
+import { runRetirementSimulation } from "../model/simulator.js";
 
 self.onmessage = async (event) => {
   const { type, inputs } = event.data || {};
@@ -25,17 +28,40 @@ self.onmessage = async (event) => {
     console.table(windowSummary);
     console.groupEnd();
 
-    self.postMessage({
-      ok: true,
-      result: {
-        mode: "historical",
-        years,
-        seriesLength: series.length,
-        windowCount: windows.length,
-        windows: windowSummary
-      }
-    });
-  } catch (error) {
+    const scenarios = [];
+    
+    for (const window of windows) {
+      const returnsProvider = createHistoricalReturnsProvider(window.rows);
+    
+      const simulation = runRetirementSimulation({
+        inputs: {
+          ...inputs,
+          years
+        },
+        returnsProvider
+      });
+    
+      scenarios.push({
+        startYear: window.startYear,
+        endYear: window.endYear,
+        result: simulation
+      });
+    }
+
+console.log("Historical scenarios run:", scenarios.length);
+
+self.postMessage({
+  ok: true,
+  result: {
+    dataset: {
+      years,
+      seriesLength: series.length,
+      windowCount: windows.length,
+      windows: windowSummary
+    },
+    scenarios
+  }
+}); } catch (error) {
     self.postMessage({
       ok: false,
       error: error instanceof Error ? error.message : "Unknown worker error."
