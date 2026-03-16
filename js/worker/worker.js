@@ -1,4 +1,4 @@
-import { runSimulationByMode } from "./run-simulation.js";
+import { runSimulationByMode } from "./run-simulation.js?v=debug9";
 
 self.onmessage = (event) => {
   const { type, mode = "historical", inputs } = event.data || {};
