@@ -616,7 +616,35 @@ main,
   letter-spacing: -0.02em;
 }
 
-/* --- ADD IT HERE --- */
+/* Title row with inline toggle (e.g. Include state pension) */
+.plan-form-section-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: var(--space-2);
+}
+
+.plan-form-section-title-row .plan-form-section-title {
+  margin: 0;
+}
+
+/* Inline checkbox used in title rows */
+.inline-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.95rem;
+  color: var(--text);
+  line-height: 1.35;
+}
+
+.inline-checkbox input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  flex: 0 0 auto;
+}
 
 /* Two-column layout for fields inside form sections */
 .plan-form-section .field-grid {
@@ -625,7 +653,7 @@ main,
   gap: 14px;
 }
 
-/* Checkboxes span full row */
+/* Checkboxes span full row when inside the grid */
 .plan-form-section .field-grid .field-checkbox {
   grid-column: 1 / -1;
 }
