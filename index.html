@@ -8,374 +8,149 @@
   <link rel="stylesheet" href="./css/style.css" />
 </head>
 <body>
-  <main class="page-shell">
+  <main class="app-shell">
     <header class="page-header">
-      <h1>Historical Retirement Simulator</h1>
-      <p>
-        Retirement outcomes using a shared browser-based simulation engine with
-        historical, Monte Carlo, and deterministic modes.
-      </p>
+      <div class="page-header-copy">
+        <h1 class="page-title">Retirement Income Planner</h1>
+        <p class="page-subtitle">
+          Build and test retirement plans using historical rolling-window analysis,
+          configurable spending rules, and portfolio allocation assumptions.
+        </p>
+      </div>
     </header>
 
-    <section class="card plan-card">
-      <h2>Plan inputs</h2>
+    <section class="top-summary-bar" aria-label="Simulation headline metrics">
+      <article class="top-summary-card">
+        <div class="top-summary-label">Success rate</div>
+        <div class="top-summary-value" id="heroSuccessRate">—</div>
+        <p class="top-summary-text">
+          Share of historical scenarios that avoid depletion across the full plan.
+        </p>
+      </article>
 
-      <form id="planForm" novalidate>
-        <div class="field-grid field-grid-2">
-          <label class="field">
-            <span class="field-label">Simulation mode</span>
-            <select id="simulationMode" name="simulationMode">
-              <option value="historical" selected>Historical (rolling windows)</option>
-              <option value="montecarlo">Monte Carlo</option>
-              <option value="deterministic">Deterministic</option>
-            </select>
-          </label>
+      <article class="top-summary-card">
+        <div class="top-summary-label">Median terminal wealth</div>
+        <div class="top-summary-value" id="heroMedianWealth">—</div>
+        <p class="top-summary-text">
+          Middle historical outcome at the end of the retirement horizon.
+        </p>
+      </article>
 
-          <label class="field">
-            <span class="field-label">Simulation years</span>
-            <input
-              id="simulationYears"
-              name="simulationYears"
-              type="text"
-              inputmode="numeric"
-              value="30"
-            />
-          </label>
-        </div>
+      <article class="top-summary-card">
+        <div class="top-summary-label">Worst scenario</div>
+        <div class="top-summary-value" id="heroWorstScenario">—</div>
+        <p class="top-summary-text">
+          Lowest terminal outcome across all historical rolling windows.
+        </p>
+      </article>
 
-        <div class="field-grid field-grid-3">
-          <label class="field">
-            <span class="field-label">Starting portfolio</span>
-            <input
-              id="startingPortfolio"
-              name="startingPortfolio"
-              type="text"
-              inputmode="decimal"
-              value="1000000"
-            />
-          </label>
-
-          <label class="field">
-            <span class="field-label">Annual spending</span>
-            <input
-              id="annualSpending"
-              name="annualSpending"
-              type="text"
-              inputmode="decimal"
-              value="40000"
-            />
-          </label>
-
-          <label class="field">
-            <span class="field-label">Annual fees (%)</span>
-            <input
-              id="annualFees"
-              name="annualFees"
-              type="text"
-              inputmode="decimal"
-              value="0.20"
-            />
-          </label>
-        </div>
-
-        <div class="card section-card">
-          <h3>Allocation</h3>
-
-          <div class="field-grid field-grid-3">
-            <label class="field">
-              <span class="field-label">Equities (%)</span>
-              <input
-                id="equityAllocation"
-                name="equityAllocation"
-                type="text"
-                inputmode="decimal"
-                value="60"
-              />
-            </label>
-
-            <label class="field">
-              <span class="field-label">Bonds (%)</span>
-              <input
-                id="bondAllocation"
-                name="bondAllocation"
-                type="text"
-                inputmode="decimal"
-                value="40"
-              />
-            </label>
-
-            <label class="field">
-              <span class="field-label">Cash-like (%)</span>
-              <input
-                id="cashAllocation"
-                name="cashAllocation"
-                type="text"
-                inputmode="decimal"
-                value="0"
-              />
-            </label>
-          </div>
-
-          <label class="field field-checkbox">
-            <input
-              id="rebalance"
-              name="rebalance"
-              type="checkbox"
-              checked
-            />
-            <span>Rebalance annually to target allocation</span>
-          </label>
-        </div>
-
-        <div class="card section-card">
-          <h3>State pension</h3>
-
-          <div class="field-grid field-grid-3">
-            <label class="field">
-              <span class="field-label">Full state pension today value</span>
-              <input
-                id="statePensionToday"
-                name="statePensionToday"
-                type="text"
-                inputmode="decimal"
-                value="11500"
-              />
-            </label>
-
-            <label class="field">
-              <span class="field-label">State pension start age</span>
-              <input
-                id="statePensionStartAge"
-                name="statePensionStartAge"
-                type="text"
-                inputmode="numeric"
-                value="67"
-              />
-            </label>
-
-            <label class="field">
-              <span class="field-label">Spending basis</span>
-              <select id="spendingBasis" name="spendingBasis">
-                <option value="real" selected>Real</option>
-                <option value="nominal">Nominal</option>
-              </select>
-            </label>
-          </div>
-
-          <div class="field-grid field-grid-2">
-            <label class="field field-checkbox">
-              <input
-                id="includeStatePension"
-                name="includeStatePension"
-                type="checkbox"
-              />
-              <span>Include state pension income</span>
-            </label>
-
-            <label class="field">
-              <span class="field-label">Display values</span>
-              <select id="displayValues" name="displayValues">
-                <option value="real" selected>Real</option>
-                <option value="nominal">Nominal</option>
-              </select>
-            </label>
-          </div>
-        </div>
-
-        <div class="card section-card">
-          <h3>Guardrails</h3>
-
-          <label class="field field-checkbox">
-            <input
-              id="useGuardrails"
-              name="useGuardrails"
-              type="checkbox"
-            />
-            <span>Enable guardrails spending rules</span>
-          </label>
-
-          <div class="field-grid field-grid-4">
-            <label class="field">
-              <span class="field-label">Floor (%)</span>
-              <input
-                id="guardrailFloor"
-                name="guardrailFloor"
-                type="text"
-                inputmode="decimal"
-                value="0"
-              />
-            </label>
-
-            <label class="field">
-              <span class="field-label">Ceiling (%)</span>
-              <input
-                id="guardrailCeiling"
-                name="guardrailCeiling"
-                type="text"
-                inputmode="decimal"
-                value="0"
-              />
-            </label>
-
-            <label class="field">
-              <span class="field-label">Cut (%)</span>
-              <input
-                id="guardrailCut"
-                name="guardrailCut"
-                type="text"
-                inputmode="decimal"
-                value="0"
-              />
-            </label>
-
-            <label class="field">
-              <span class="field-label">Raise (%)</span>
-              <input
-                id="guardrailRaise"
-                name="guardrailRaise"
-                type="text"
-                inputmode="decimal"
-                value="0"
-              />
-            </label>
-          </div>
-        </div>
-
-        <div class="card section-card">
-          <h3>Monte Carlo assumptions</h3>
-
-          <div class="field-grid field-grid-3">
-            <label class="field">
-              <span class="field-label">Runs</span>
-              <input
-                id="monteCarloRuns"
-                name="monteCarloRuns"
-                type="text"
-                inputmode="numeric"
-                value="1000"
-              />
-            </label>
-
-            <label class="field">
-              <span class="field-label">Equity mean return (%)</span>
-              <input
-                id="equityReturnMean"
-                name="equityReturnMean"
-                type="text"
-                inputmode="decimal"
-                value="7"
-              />
-            </label>
-
-            <label class="field">
-              <span class="field-label">Equity volatility (%)</span>
-              <input
-                id="equityReturnStdDev"
-                name="equityReturnStdDev"
-                type="text"
-                inputmode="decimal"
-                value="15"
-              />
-            </label>
-          </div>
-
-          <div class="field-grid field-grid-3">
-            <label class="field">
-              <span class="field-label">Bond mean return (%)</span>
-              <input
-                id="bondReturnMean"
-                name="bondReturnMean"
-                type="text"
-                inputmode="decimal"
-                value="2"
-              />
-            </label>
-
-            <label class="field">
-              <span class="field-label">Bond volatility (%)</span>
-              <input
-                id="bondReturnStdDev"
-                name="bondReturnStdDev"
-                type="text"
-                inputmode="decimal"
-                value="7"
-              />
-            </label>
-
-            <label class="field">
-              <span class="field-label">Inflation mean (%)</span>
-              <input
-                id="inflationMean"
-                name="inflationMean"
-                type="text"
-                inputmode="decimal"
-                value="2.5"
-              />
-            </label>
-          </div>
-
-          <div class="field-grid field-grid-3">
-            <label class="field">
-              <span class="field-label">Inflation volatility (%)</span>
-              <input
-                id="inflationStdDev"
-                name="inflationStdDev"
-                type="text"
-                inputmode="decimal"
-                value="2"
-              />
-            </label>
-          </div>
-        </div>
-
-        <div class="card section-card">
-          <h3>Deterministic assumptions</h3>
-
-          <div class="field-grid field-grid-3">
-            <label class="field">
-              <span class="field-label">Equity return (%)</span>
-              <input
-                id="equityReturn"
-                name="equityReturn"
-                type="text"
-                inputmode="decimal"
-                value="6"
-              />
-            </label>
-
-            <label class="field">
-              <span class="field-label">Bond return (%)</span>
-              <input
-                id="bondReturn"
-                name="bondReturn"
-                type="text"
-                inputmode="decimal"
-                value="2"
-              />
-            </label>
-
-            <label class="field">
-              <span class="field-label">Inflation (%)</span>
-              <input
-                id="inflation"
-                name="inflation"
-                type="text"
-                inputmode="decimal"
-                value="2"
-              />
-            </label>
-          </div>
-        </div>
-
-        <div class="form-actions">
-          <button type="submit">Run simulation</button>
-        </div>
-      </form>
+      <article class="top-summary-card">
+        <div class="top-summary-label">Scenario count</div>
+        <div class="top-summary-value" id="heroScenarioCount">—</div>
+        <p class="top-summary-text">
+          Number of historical windows included in the current simulation.
+        </p>
+      </article>
     </section>
 
-    <section id="resultsSummary" aria-live="polite"></section>
-    <section id="historicalChart" aria-live="polite"></section>
-    <section id="scenarioTable" aria-live="polite"></section>
+    <nav class="screen-tabs" aria-label="Planner sections">
+      <button
+        id="tabInputs"
+        class="screen-tab is-active"
+        type="button"
+        aria-selected="true"
+        aria-controls="inputsScreen"
+      >
+        Inputs
+      </button>
+
+      <button
+        id="tabResults"
+        class="screen-tab"
+        type="button"
+        aria-selected="false"
+        aria-controls="resultsScreen"
+      >
+        Results
+      </button>
+    </nav>
+
+    <section
+      id="inputsScreen"
+      class="screen-panel screen-panel-active"
+      aria-labelledby="tabInputs"
+    >
+      <div class="panel-shell">
+        <div class="panel-toolbar">
+          <div>
+            <h2 class="panel-title">Plan assumptions</h2>
+            <p class="panel-subtitle">
+              Set retirement horizon, spending, allocation, and pension assumptions before running the simulation.
+            </p>
+          </div>
+
+          <div class="panel-actions">
+            <button id="runSimulationButton" class="button button-primary" type="button">
+              Run simulation
+            </button>
+            <button id="resetDefaultsButton" class="button button-secondary" type="button">
+              Reset defaults
+            </button>
+          </div>
+        </div>
+
+        <div class="planner-grid">
+          <section class="planner-card">
+            <h3 class="planner-card-title">Core assumptions</h3>
+            <p class="planner-card-subtitle">
+              Retirement horizon, portfolio size, spending, and allocation settings.
+            </p>
+
+            <div id="planFormCore"></div>
+          </section>
+
+          <section class="planner-card">
+            <h3 class="planner-card-title">Pension and income</h3>
+            <p class="planner-card-subtitle">
+              State pension timing and other income sources that reduce withdrawals.
+            </p>
+
+            <div id="planFormIncome"></div>
+          </section>
+
+          <section class="planner-card">
+            <h3 class="planner-card-title">Spending rules</h3>
+            <p class="planner-card-subtitle">
+              Optional guardrails and spending floor assumptions.
+            </p>
+
+            <div id="planFormGuardrails"></div>
+          </section>
+
+          <section class="planner-card">
+            <h3 class="planner-card-title">Simulation settings</h3>
+            <p class="planner-card-subtitle">
+              Rebalancing, display mode, and other run controls.
+            </p>
+
+            <div id="planFormSettings"></div>
+          </section>
+        </div>
+      </div>
+    </section>
+
+    <section
+      id="resultsScreen"
+      class="screen-panel"
+      aria-labelledby="tabResults"
+      hidden
+    >
+      <div class="results-stack">
+        <section id="resultsSummary"></section>
+        <section id="resultsChart"></section>
+        <section id="scenarioTable"></section>
+      </div>
+    </section>
   </main>
 
   <script type="module" src="./js/app.js"></script>
