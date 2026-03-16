@@ -92,7 +92,8 @@ self.onmessage = async (event) => {
           windowCount: windows.length,
           windows: windowSummary
         },
-        scenarios
+        scenarios,
+        summary
       }
     });
   } catch (error) {
