@@ -1,3 +1,7 @@
+import { simulateScenario } from "../../model/engine.js";
+import { createHistoricalReturnsProvider } from "../../model/returns/historical.js";
+import { aggregateResults } from "../../model/analysis/aggregator.js";
+
 export function runHistoricalMode(inputs) {
   return {
     scenarios: [],
@@ -7,7 +11,11 @@ export function runHistoricalMode(inputs) {
       p10TerminalWealth: 0,
       p90TerminalWealth: 0,
       scenarioCount: 0,
-      test: "historical-mode-loaded"
+      test: {
+        simulateScenarioLoaded: typeof simulateScenario === "function",
+        createHistoricalReturnsProviderLoaded: typeof createHistoricalReturnsProvider === "function",
+        aggregateResultsLoaded: typeof aggregateResults === "function"
+      }
     }
   };
 }
