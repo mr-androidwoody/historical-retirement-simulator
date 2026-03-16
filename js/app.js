@@ -1,16 +1,83 @@
-import { bindPlanForm, getPlanInputs } from "./ui/plan-form.js";
+import { bindPlanForm } from "./ui/plan-form.js";
 import { renderResultsSummary } from "./ui/results-view.js";
 import { renderScenarioTable } from "./ui/yearly-table.js";
 import { renderHistoricalChart } from "./ui/charts.js";
 
 const WORKER_URL = "./js/worker/worker.js?v=debug10";
 
-const resultsSummaryElement = document.getElementById("resultsSummary");
-const scenarioTableElement = document.getElementById("scenarioTable");
-const historicalChartElement = document.getElementById("historicalChart");
 const planFormElement = document.getElementById("planForm");
 
+const resultsSummaryElement = document.getElementById("resultsSummary");
+const resultsChartElement = document.getElementById("resultsChart");
+const scenarioTableElement = document.getElementById("scenarioTable");
+
+const tabInputsElement = document.getElementById("tabInputs");
+const tabResultsElement = document.getElementById("tabResults");
+const inputsScreenElement = document.getElementById("inputsScreen");
+const resultsScreenElement = document.getElementById("resultsScreen");
+
+const heroSuccessRateElement = document.getElementById("heroSuccessRate");
+const heroMedianWealthElement = document.getElementById("heroMedianWealth");
+const heroWorstScenarioElement = document.getElementById("heroWorstScenario");
+const heroScenarioCountElement = document.getElementById("heroScenarioCount");
+
 let worker = null;
+
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function toFiniteNumber(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : 0;
+}
+
+function formatPercentage(value) {
+  return `${(toFiniteNumber(value) * 100).toFixed(1)}%`;
+}
+
+function formatCurrency(value) {
+  return new Intl.NumberFormat("en-GB", {
+    style: "currency",
+    currency: "GBP",
+    maximumFractionDigits: 0
+  }).format(toFiniteNumber(value));
+}
+
+function formatWholeNumber(value) {
+  return new Intl.NumberFormat("en-GB", {
+    maximumFractionDigits: 0
+  }).format(toFiniteNumber(value));
+}
+
+function showScreen(screen) {
+  const showInputs = screen === "inputs";
+
+  if (inputsScreenElement) {
+    inputsScreenElement.hidden = !showInputs;
+    inputsScreenElement.classList.toggle("screen-panel-active", showInputs);
+  }
+
+  if (resultsScreenElement) {
+    resultsScreenElement.hidden = showInputs;
+    resultsScreenElement.classList.toggle("screen-panel-active", !showInputs);
+  }
+
+  if (tabInputsElement) {
+    tabInputsElement.classList.toggle("is-active", showInputs);
+    tabInputsElement.setAttribute("aria-selected", String(showInputs));
+  }
+
+  if (tabResultsElement) {
+    tabResultsElement.classList.toggle("is-active", !showInputs);
+    tabResultsElement.setAttribute("aria-selected", String(!showInputs));
+  }
+}
 
 function createWorker() {
   if (worker) {
@@ -18,7 +85,6 @@ function createWorker() {
   }
 
   worker = new Worker(WORKER_URL, { type: "module" });
-
   worker.onmessage = handleWorkerMessage;
   worker.onerror = handleWorkerError;
 
@@ -30,38 +96,79 @@ function clearResults() {
     resultsSummaryElement.innerHTML = "";
   }
 
+  if (resultsChartElement) {
+    resultsChartElement.innerHTML = "";
+  }
+
   if (scenarioTableElement) {
     scenarioTableElement.innerHTML = "";
   }
+}
 
-  if (historicalChartElement) {
-    historicalChartElement.innerHTML = "";
+function clearHeroMetrics() {
+  if (heroSuccessRateElement) {
+    heroSuccessRateElement.textContent = "—";
+  }
+
+  if (heroMedianWealthElement) {
+    heroMedianWealthElement.textContent = "—";
+  }
+
+  if (heroWorstScenarioElement) {
+    heroWorstScenarioElement.textContent = "—";
+  }
+
+  if (heroScenarioCountElement) {
+    heroScenarioCountElement.textContent = "—";
+  }
+}
+
+function updateHeroMetrics(summary) {
+  if (heroSuccessRateElement) {
+    heroSuccessRateElement.textContent = formatPercentage(summary.successRate);
+  }
+
+  if (heroMedianWealthElement) {
+    heroMedianWealthElement.textContent = formatCurrency(summary.medianTerminalWealth);
+  }
+
+  if (heroWorstScenarioElement) {
+    heroWorstScenarioElement.textContent = formatCurrency(summary.p10TerminalWealth);
+  }
+
+  if (heroScenarioCountElement) {
+    heroScenarioCountElement.textContent = formatWholeNumber(summary.scenarioCount);
   }
 }
 
 function showLoading() {
-  if (!resultsSummaryElement) {
-    return;
+  showScreen("results");
+
+  if (resultsSummaryElement) {
+    resultsSummaryElement.innerHTML = `
+      <section class="results-summary">
+        <h2 class="results-summary-title">Summary</h2>
+        <div class="card">
+          <h2>Running simulation</h2>
+          <p>Please wait…</p>
+        </div>
+      </section>
+    `;
   }
 
-  resultsSummaryElement.innerHTML = `
-    <div class="card">
-      <h2>Running simulation</h2>
-      <p>Please wait…</p>
-    </div>
-  `;
+  if (resultsChartElement) {
+    resultsChartElement.innerHTML = "";
+  }
 
   if (scenarioTableElement) {
     scenarioTableElement.innerHTML = "";
-  }
-
-  if (historicalChartElement) {
-    historicalChartElement.innerHTML = "";
   }
 }
 
 function showError(message) {
   clearResults();
+  clearHeroMetrics();
+  showScreen("results");
 
   if (resultsSummaryElement) {
     resultsSummaryElement.innerHTML = `
@@ -71,15 +178,6 @@ function showError(message) {
       </div>
     `;
   }
-}
-
-function escapeHtml(value) {
-  return String(value)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
 }
 
 function getScenarioResultObject(scenario) {
@@ -104,7 +202,7 @@ function getTerminalNominal(scenario) {
   }
 
   if (Array.isArray(result.pathNominal) && result.pathNominal.length > 0) {
-    return result.pathNominal[result.pathNominal.length - 1];
+    return toFiniteNumber(result.pathNominal[result.pathNominal.length - 1]);
   }
 
   return 0;
@@ -122,7 +220,7 @@ function getTerminalReal(scenario) {
   }
 
   if (Array.isArray(result.pathReal) && result.pathReal.length > 0) {
-    return result.pathReal[result.pathReal.length - 1];
+    return toFiniteNumber(result.pathReal[result.pathReal.length - 1]);
   }
 
   return 0;
@@ -151,8 +249,8 @@ function normaliseScenarios(scenarios) {
     const result = getScenarioResultObject(scenario);
 
     return {
-      ...scenario,
       ...result,
+      ...scenario,
       scenarioId: scenario?.scenarioId ?? index + 1,
       startYear: scenario?.startYear ?? "",
       endYear: scenario?.endYear ?? "",
@@ -165,11 +263,11 @@ function normaliseScenarios(scenarios) {
 
 function normaliseSummary(summary, scenarios) {
   return {
-    successRate: Number(summary?.successRate ?? 0),
-    medianTerminalWealth: Number(summary?.medianTerminalWealth ?? 0),
-    p10TerminalWealth: Number(summary?.p10TerminalWealth ?? 0),
-    p90TerminalWealth: Number(summary?.p90TerminalWealth ?? 0),
-    scenarioCount: Number(summary?.scenarioCount ?? scenarios.length ?? 0)
+    successRate: toFiniteNumber(summary?.successRate),
+    medianTerminalWealth: toFiniteNumber(summary?.medianTerminalWealth),
+    p10TerminalWealth: toFiniteNumber(summary?.p10TerminalWealth),
+    p90TerminalWealth: toFiniteNumber(summary?.p90TerminalWealth),
+    scenarioCount: toFiniteNumber(summary?.scenarioCount ?? scenarios.length)
   };
 }
 
@@ -195,13 +293,15 @@ function renderResults(result) {
   const scenarios = normaliseScenarios(result?.scenarios);
   const summary = normaliseSummary(result?.summary, scenarios);
 
+  updateHeroMetrics(summary);
+
   renderResultsSummary({
     container: resultsSummaryElement,
     summary
   });
 
   renderHistoricalChart({
-    container: historicalChartElement,
+    container: resultsChartElement,
     scenarios
   });
 
@@ -211,6 +311,7 @@ function renderResults(result) {
   });
 
   logScenarioResults(scenarios);
+  showScreen("results");
 }
 
 function runSimulation(inputs) {
@@ -255,12 +356,41 @@ function handleWorkerError(event) {
   showError("The simulation worker crashed. Check the browser console for details.");
 }
 
+function bindScreenTabs() {
+  if (tabInputsElement) {
+    tabInputsElement.addEventListener("click", () => {
+      showScreen("inputs");
+    });
+  }
+
+  if (tabResultsElement) {
+    tabResultsElement.addEventListener("click", () => {
+      showScreen("results");
+    });
+  }
+}
+
 function initialiseApp() {
   if (!planFormElement) {
     throw new Error('Plan form not found. Expected element with id "planForm".');
   }
 
+  if (!resultsSummaryElement) {
+    throw new Error('Results summary not found. Expected element with id "resultsSummary".');
+  }
+
+  if (!resultsChartElement) {
+    throw new Error('Results chart not found. Expected element with id "resultsChart".');
+  }
+
+  if (!scenarioTableElement) {
+    throw new Error('Scenario table not found. Expected element with id "scenarioTable".');
+  }
+
   createWorker();
+  bindScreenTabs();
+  clearHeroMetrics();
+  showScreen("inputs");
 
   bindPlanForm({
     form: planFormElement,
@@ -268,9 +398,6 @@ function initialiseApp() {
       runSimulation(inputs);
     }
   });
-
-  const initialInputs = getPlanInputs(planFormElement);
-  runSimulation(initialInputs);
 }
 
 initialiseApp();
