@@ -3,7 +3,7 @@ import { renderResultsSummary } from "./ui/results-view.js";
 import { renderScenarioTable } from "./ui/yearly-table.js";
 import { renderHistoricalChart } from "./ui/charts.js";
 
-const WORKER_URL = "./js/worker/worker.js";
+const WORKER_URL = "./js/worker/worker.js?v=debug10";
 
 const resultsSummaryElement = document.getElementById("resultsSummary");
 const scenarioTableElement = document.getElementById("scenarioTable");
