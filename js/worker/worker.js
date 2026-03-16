@@ -6,6 +6,7 @@ import {
 } from "../model/returns/historical.js";
 
 import { runRetirementSimulation } from "../model/simulator.js";
+import { aggregateScenarioResults } from "../model/analysis/aggregator.js";
 
 console.log("WORKER VERSION 4");
 
@@ -70,6 +71,17 @@ self.onmessage = async (event) => {
 
     console.log("Finished scenario loop");
     console.log("Historical scenarios run:", scenarios.length);
+
+    const summary = aggregateScenarioResults(
+      scenarios.map((scenario) => scenario.result)
+    );
+
+    console.group("Historical summary");
+    console.log("Success rate:", summary.successRate);
+    console.log("Median terminal wealth:", summary.medianTerminalWealth);
+    console.log("10th percentile terminal wealth:", summary.p10TerminalWealth);
+    console.log("90th percentile terminal wealth:", summary.p90TerminalWealth);
+    console.groupEnd();
 
     self.postMessage({
       ok: true,
