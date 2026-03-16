@@ -1,6 +1,24 @@
 import { runSimulationByMode } from "./run-simulation.js";
 
-self.onmessage = (event) => {
+let historicalDatasetPromise = null;
+
+async function loadHistoricalDataset() {
+  if (!historicalDatasetPromise) {
+    historicalDatasetPromise = fetch(
+      "/historical-retirement-simulator/data/global-market-history-composite.json"
+    ).then((response) => {
+      if (!response.ok) {
+        throw new Error("Failed to load historical dataset.");
+      }
+
+      return response.json();
+    });
+  }
+
+  return historicalDatasetPromise;
+}
+
+self.onmessage = async (event) => {
   const { type, mode = "historical", inputs } = event.data || {};
 
   if (type !== "run") {
@@ -8,9 +26,15 @@ self.onmessage = (event) => {
   }
 
   try {
+    const resolvedInputs = { ...(inputs || {}) };
+
+    if (mode === "historical") {
+      resolvedInputs.dataset = await loadHistoricalDataset();
+    }
+
     const result = runSimulationByMode({
       mode,
-      inputs
+      inputs: resolvedInputs
     });
 
     self.postMessage({ ok: true, result });
