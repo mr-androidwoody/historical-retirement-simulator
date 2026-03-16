@@ -277,9 +277,21 @@ function renderPlanFormMarkup(values = DEFAULTS) {
         </section>
 
         <section class="plan-form-section">
-          <h4 class="plan-form-section-title">Pension and display</h4>
+        
+          <div class="plan-form-section-title-row">
+            <h4 class="plan-form-section-title">Pension and display</h4>
+        
+            <label class="inline-checkbox">
+              <input
+                id="includeStatePension"
+                type="checkbox"${values.includeStatePension ? " checked" : ""}
+              />
+              <span>Include state pension</span>
+            </label>
+          </div>
         
           <div class="field-grid">
+        
             <label class="field">
               <span class="field-label">State pension today (£)</span>
               <input
@@ -300,11 +312,6 @@ function renderPlanFormMarkup(values = DEFAULTS) {
               />
             </label>
         
-            <label class="field field-checkbox">
-              <input id="includeStatePension" type="checkbox"${values.includeStatePension ? " checked" : ""} />
-              <span>Include state pension</span>
-            </label>
-        
             <label class="field">
               <span class="field-label">Spending basis</span>
               <select id="spendingBasis">
@@ -320,7 +327,9 @@ function renderPlanFormMarkup(values = DEFAULTS) {
                 <option value="nominal"${values.displayValues === "nominal" ? " selected" : ""}>Nominal</option>
               </select>
             </label>
+        
           </div>
+        
         </section>
 
         <section class="plan-form-section">
