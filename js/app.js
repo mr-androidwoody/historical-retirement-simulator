@@ -1,5 +1,6 @@
 import { renderResultsSummary } from "./ui/results-view.js";
 import { renderScenarioTable } from "./ui/yearly-table.js";
+import { renderHistoricalChart } from "./ui/charts.js";
 
 console.log("APP VERSION 4");
 const worker = new Worker("./js/worker/worker.js?v=6", { type: "module" });
@@ -20,11 +21,17 @@ worker.onmessage = (event) => {
 
   const resultsSummaryElement = document.getElementById("resultsSummary");
   const scenarioTableElement = document.getElementById("scenarioTable");
-
+  const historicalChartElement = document.getElementById("historicalChart");
+    
   renderResultsSummary({
     container: resultsSummaryElement,
     summary: result.summary
   });
+
+  renderHistoricalChart({
+  container: historicalChartElement,
+  scenarios: result.scenarios
+  });  
 
   renderScenarioTable({
     container: scenarioTableElement,
