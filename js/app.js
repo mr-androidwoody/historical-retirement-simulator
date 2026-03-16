@@ -1,5 +1,5 @@
 console.log("APP VERSION 4");
-const worker = new Worker("./js/worker/worker.js?v=5", { type: "module" });
+const worker = new Worker("./js/worker/worker.js?v=6", { type: "module" });
 
 worker.onmessage = (event) => {
   const { ok, result, error } = event.data || {};
@@ -10,11 +10,9 @@ worker.onmessage = (event) => {
   }
 
   console.group("Worker response");
-
-  console.group("Dataset summary");
-  console.log("Series length:", result.dataset.seriesLength);
-  console.log("Window count:", result.dataset.windowCount);
-  console.table(result.dataset.windows);
+  console.log("Dataset summary", result.dataset);
+  console.log("Scenario results", result.scenarios);
+  console.log("Scenario summary", result.summary);
   console.groupEnd();
 
   console.group("Scenario results");
