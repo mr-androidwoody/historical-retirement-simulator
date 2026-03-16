@@ -16,23 +16,33 @@ worker.onmessage = (event) => {
   console.table(result.dataset.windows);
 
   console.log("Scenario count:", result.scenarios.length);
+
   console.table(
     result.scenarios.map((scenario) => ({
       startYear: scenario.startYear,
       endYear: scenario.endYear,
       depleted: scenario.result.depleted,
       terminalNominal:
-        scenario.result.pathNominal[scenario.result.pathNominal.length - 1] ?? 0,
+        scenario.result.pathNominal[
+          scenario.result.pathNominal.length - 1
+        ] ?? 0,
       terminalReal:
-        scenario.result.pathReal[scenario.result.pathReal.length - 1] ?? 0
+        scenario.result.pathReal[
+          scenario.result.pathReal.length - 1
+        ] ?? 0
     }))
   );
 
   console.groupEnd();
 };
 
-worker.onerror = (error) => {
-  console.error("Worker crashed:", error.message);
+worker.onerror = (event) => {
+  console.error("Worker crashed");
+  console.error("Message:", event.message);
+  console.error("File:", event.filename);
+  console.error("Line:", event.lineno);
+  console.error("Column:", event.colno);
+  console.error("Error object:", event.error);
 };
 
 worker.postMessage({
