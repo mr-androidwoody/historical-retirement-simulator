@@ -10,13 +10,14 @@ worker.onmessage = (event) => {
 
   console.group("Worker response");
 
-  console.log("Dataset summary");
+  console.group("Dataset summary");
   console.log("Series length:", result.dataset.seriesLength);
   console.log("Window count:", result.dataset.windowCount);
   console.table(result.dataset.windows);
+  console.groupEnd();
 
+  console.group("Scenario results");
   console.log("Scenario count:", result.scenarios.length);
-
   console.table(
     result.scenarios.map((scenario) => ({
       startYear: scenario.startYear,
@@ -32,6 +33,7 @@ worker.onmessage = (event) => {
         ] ?? 0
     }))
   );
+  console.groupEnd();
 
   console.groupEnd();
 };
