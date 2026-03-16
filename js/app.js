@@ -1,3 +1,5 @@
+import { renderResultsSummary } from "./ui/results-view.js";
+
 console.log("APP VERSION 4");
 const worker = new Worker("./js/worker/worker.js?v=6", { type: "module" });
 
@@ -14,6 +16,13 @@ worker.onmessage = (event) => {
   console.log("Scenario results", result.scenarios);
   console.log("Scenario summary", result.summary);
   console.groupEnd();
+
+  const resultsSummaryElement = document.getElementById("resultsSummary");
+
+  renderResultsSummary({
+    container: resultsSummaryElement,
+    summary: result.summary
+  });
 
   console.group("Scenario results");
   console.log("Scenario count:", result.scenarios.length);
@@ -32,8 +41,6 @@ worker.onmessage = (event) => {
         ] ?? 0
     }))
   );
-  console.groupEnd();
-
   console.groupEnd();
 };
 
