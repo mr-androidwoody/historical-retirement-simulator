@@ -25,6 +25,26 @@ function getTerminalWealth(scenario) {
   return getLastNumber(scenario.pathNominal);
 }
 
+function getMinimumWealth(scenario) {
+  if (!scenario || typeof scenario !== "object") {
+    return 0;
+  }
+
+  const path =
+    Array.isArray(scenario.pathReal) && scenario.pathReal.length > 0
+      ? scenario.pathReal
+      : scenario.pathNominal;
+
+  if (!Array.isArray(path) || path.length === 0) {
+    return 0;
+  }
+
+  return path.reduce((min, value) => {
+    const num = toFiniteNumber(value);
+    return num < min ? num : min;
+  }, Number.POSITIVE_INFINITY);
+}
+
 function isSuccessfulScenario(scenario) {
   if (!scenario || typeof scenario !== "object") {
     return false;
@@ -63,11 +83,50 @@ function percentileFromSorted(sortedValues, percentile) {
   return lowerValue + (upperValue - lowerValue) * weight;
 }
 
+function buildSingleScenarioSummary(scenario) {
+  return {
+    type: "single",
+
+    startYear: scenario.startYear ?? "",
+    endYear: scenario.endYear ?? "",
+
+    terminalWealth: getTerminalWealth(scenario),
+
+    depleted: Boolean(scenario.depleted),
+    depletionYear:
+      typeof scenario.depletionYear === "number"
+        ? scenario.depletionYear
+        : null,
+
+    minimumWealth: getMinimumWealth(scenario)
+  };
+}
+
+function buildMultiScenarioSummary(scenarios) {
+  const terminalWealths = scenarios
+    .map(getTerminalWealth)
+    .sort((a, b) => a - b);
+
+  const successCount = scenarios.filter(isSuccessfulScenario).length;
+
+  return {
+    type: "multi",
+
+    scenarioCount: scenarios.length,
+    successRate: successCount / scenarios.length,
+
+    medianTerminalWealth: percentileFromSorted(terminalWealths, 50),
+    p10TerminalWealth: percentileFromSorted(terminalWealths, 10),
+    p90TerminalWealth: percentileFromSorted(terminalWealths, 90)
+  };
+}
+
 export function aggregateScenarioResults(scenarios) {
   const safeScenarios = Array.isArray(scenarios) ? scenarios : [];
 
   if (safeScenarios.length === 0) {
     return {
+      type: "multi",
       scenarioCount: 0,
       successRate: 0,
       medianTerminalWealth: 0,
@@ -76,17 +135,9 @@ export function aggregateScenarioResults(scenarios) {
     };
   }
 
-  const terminalWealths = safeScenarios
-    .map(getTerminalWealth)
-    .sort((a, b) => a - b);
+  if (safeScenarios.length === 1) {
+    return buildSingleScenarioSummary(safeScenarios[0]);
+  }
 
-  const successCount = safeScenarios.filter(isSuccessfulScenario).length;
-
-  return {
-    scenarioCount: safeScenarios.length,
-    successRate: successCount / safeScenarios.length,
-    medianTerminalWealth: percentileFromSorted(terminalWealths, 50),
-    p10TerminalWealth: percentileFromSorted(terminalWealths, 10),
-    p90TerminalWealth: percentileFromSorted(terminalWealths, 90)
-  };
+  return buildMultiScenarioSummary(safeScenarios);
 }
