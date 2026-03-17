@@ -74,20 +74,21 @@ export function simulateScenario({ inputs, returnsProvider }) {
       }
     }
 
-    // === GK INFLATION RULE ===
-    const inflationAllowed =
+    // Proper GK inflation rule:
+    // for real spending, skip the inflation increase after a negative prior-year return.
+    const inflationApplied =
       year > 0 &&
       spendingBasis === "real" &&
       previousPortfolioReturn !== null &&
       previousPortfolioReturn >= 0;
 
-    if (inflationAllowed) {
+    if (inflationApplied) {
       currentPlannedSpending *= 1 + inflation;
     }
 
     const targetSpending = currentPlannedSpending;
 
-    const { actualSpending, cut, raise } = applyGuardrails({
+    const { actualSpending, cut, raise, decision } = applyGuardrailsGK({
       enabled: guardrailsEnabled,
       targetSpending,
       startPortfolio,
@@ -99,7 +100,7 @@ export function simulateScenario({ inputs, returnsProvider }) {
       raisePercent: guardrailRaise
     });
 
-    // Persist adjusted spending
+    // Persist the actual chosen spending as next year's base.
     currentPlannedSpending = actualSpending;
 
     const totalIncome = statePension + otherIncome + windfall;
@@ -141,6 +142,7 @@ export function simulateScenario({ inputs, returnsProvider }) {
       actualSpending,
       cut,
       raise,
+      decision,
       shortfall,
       statePension,
       otherIncome,
@@ -151,7 +153,7 @@ export function simulateScenario({ inputs, returnsProvider }) {
       inflation,
       realPortfolio,
       depleted,
-      inflationApplied: inflationAllowed
+      inflationApplied
     });
 
     pathNominal.push(endPortfolio);
@@ -180,7 +182,7 @@ export function simulateScenario({ inputs, returnsProvider }) {
   };
 }
 
-function applyGuardrails({
+function applyGuardrailsGK({
   enabled,
   targetSpending,
   startPortfolio,
@@ -195,7 +197,8 @@ function applyGuardrails({
     return {
       actualSpending: targetSpending,
       cut: 0,
-      raise: 0
+      raise: 0,
+      decision: "none"
     };
   }
 
@@ -203,38 +206,40 @@ function applyGuardrails({
     return {
       actualSpending: targetSpending,
       cut: 0,
-      raise: 0
+      raise: 0,
+      decision: "none"
     };
   }
 
   const currentWithdrawalRate = targetSpending / startPortfolio;
   const initialWithdrawalRate = initialSpending / initialPortfolio;
 
-  const floorRate = initialWithdrawalRate * (1 - floorGuardrail);
-  const ceilingRate = initialWithdrawalRate * (1 + ceilingGuardrail);
+  const lowerGuardrailRate = initialWithdrawalRate * (1 - floorGuardrail);
+  const upperGuardrailRate = initialWithdrawalRate * (1 + ceilingGuardrail);
 
   let actualSpending = targetSpending;
   let cut = 0;
   let raise = 0;
+  let decision = "none";
 
-  if (currentWithdrawalRate > ceilingRate) {
+  // Capital preservation rule
+  if (currentWithdrawalRate > upperGuardrailRate) {
     actualSpending = targetSpending * (1 - cutPercent);
     cut = Math.max(0, targetSpending - actualSpending);
-  } else if (currentWithdrawalRate < floorRate) {
-    const raisedSpending = targetSpending * (1 + raisePercent);
-
-    // === CRITICAL FIX: CAP RAISES ===
-    const maxAllowedSpending =
-      initialSpending * (startPortfolio / initialPortfolio);
-
-    actualSpending = Math.min(raisedSpending, maxAllowedSpending);
+    decision = "cut";
+  }
+  // Prosperity rule
+  else if (currentWithdrawalRate < lowerGuardrailRate) {
+    actualSpending = targetSpending * (1 + raisePercent);
     raise = Math.max(0, actualSpending - targetSpending);
+    decision = "raise";
   }
 
   return {
     actualSpending,
     cut,
-    raise
+    raise,
+    decision
   };
 }
 
