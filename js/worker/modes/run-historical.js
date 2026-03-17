@@ -51,24 +51,31 @@ export function runHistoricalMode(inputs) {
 
   const scenarios = [];
 
-  for (const startIndex of startIndices) {
-    const window = series.slice(startIndex, startIndex + horizon);
-    const returnsProvider = createHistoricalReturnsProvider(window);
-
-    const scenario = simulateScenario({
-      inputs,
-      returnsProvider
-    });
-
-    scenarios.push({
-      scenarioId: startIndex + 1,
-      startYear: window[0]?.year ?? "",
-      endYear: window[window.length - 1]?.year ?? "",
-      ...scenario
-    });
-  }
-
-  const summary = aggregateScenarioResults(scenarios);
+    for (const startIndex of startIndices) {
+      const window = series.slice(startIndex, startIndex + horizon);
+      const returnsProvider = createHistoricalReturnsProvider(window);
+    
+      const scenario = simulateScenario({
+        inputs,
+        returnsProvider
+      });
+    
+      scenarios.push({
+        scenarioId: startIndex + 1,
+        startYear: window[0]?.year ?? "",
+        endYear: window[window.length - 1]?.year ?? "",
+        ...scenario
+      });
+    }
+    
+    // ADD THIS (debug only)
+    console.log(
+      scenarios
+        .filter(s => s.depleted === false)
+        .map(s => s.startYear)
+    );
+    
+    const summary = aggregateScenarioResults(scenarios);
 
   return {
     scenarios,
