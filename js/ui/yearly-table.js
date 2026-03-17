@@ -237,11 +237,259 @@ function formatYearLabel(row) {
 }
 
 /* ============================
+   MULTI-SCENARIO HELPERS
+   ============================ */
+
+function getMedianIndex(length) {
+  if (length <= 0) {
+    return -1;
+  }
+
+  return Math.floor((length - 1) / 2);
+}
+
+function computeScenarioRankings(rows) {
+  const indexedRows = rows.map((row, originalIndex) => ({
+    row,
+    originalIndex
+  }));
+
+  const sorted = indexedRows
+    .slice()
+    .sort((a, b) => a.row.terminalReal - b.row.terminalReal);
+
+  const medianIndex = getMedianIndex(sorted.length);
+
+  const rankingByOriginalIndex = new Map();
+
+  sorted.forEach((entry, sortedIndex) => {
+    const denominator = sorted.length > 1 ? sorted.length - 1 : 1;
+    const percentile = sortedIndex / denominator;
+
+    let bucketLabel = "Median";
+
+    if (percentile <= 0.1) {
+      bucketLabel = "Bottom decile";
+    } else if (percentile <= 0.25) {
+      bucketLabel = "Bottom quartile";
+    } else if (percentile >= 0.75) {
+      bucketLabel = "Top quartile";
+    }
+
+    const ranking = {
+      rankIndex: sortedIndex,
+      percentile,
+      isWorst: sortedIndex === 0,
+      isBest: sortedIndex === sorted.length - 1,
+      isMedian: sortedIndex === medianIndex,
+      isBottomDecile: percentile <= 0.1,
+      isBottomQuartile: percentile <= 0.25,
+      isTopQuartile: percentile >= 0.75,
+      bucketLabel
+    };
+
+    rankingByOriginalIndex.set(entry.originalIndex, ranking);
+  });
+
+  return rankingByOriginalIndex;
+}
+
+function getDepletionYear(scenario) {
+  const yearlyRows = Array.isArray(scenario?.yearlyRows)
+    ? scenario.yearlyRows
+    : [];
+
+  const depletedRow = yearlyRows.find((row) => Boolean(row?.depleted));
+
+  if (!depletedRow) {
+    return null;
+  }
+
+  return toFiniteNumber(depletedRow.year);
+}
+
+function computeStressMetrics(scenario) {
+  const yearlyRows = Array.isArray(scenario?.yearlyRows)
+    ? scenario.yearlyRows
+    : [];
+
+  let firstStressYear = null;
+  let stressYears = 0;
+  let maxCutRatio = 0;
+  let recoveryYears = 0;
+
+  yearlyRows.forEach((row) => {
+    const hasStress =
+      toFiniteNumber(row?.cut) > 0 || toFiniteNumber(row?.shortfall) > 0;
+
+    if (hasStress) {
+      stressYears += 1;
+
+      if (firstStressYear === null) {
+        firstStressYear = toFiniteNumber(row?.year);
+      }
+    }
+
+    const cutRatio = getSeverityRatio(row?.cut, row?.targetSpending);
+    maxCutRatio = Math.max(maxCutRatio, cutRatio);
+  });
+
+  const enriched = enrichYearlyRows(yearlyRows);
+
+  enriched.forEach((row) => {
+    if (row?.isRecovery) {
+      recoveryYears += 1;
+    }
+  });
+
+  return {
+    firstStressYear,
+    stressYears,
+    maxCutRatio,
+    recoveryYears,
+    hasStress: stressYears > 0,
+    hasEarlyStress:
+      firstStressYear !== null && firstStressYear <= 5,
+    hasRecovery: recoveryYears > 0
+  };
+}
+
+function getScenarioPrimaryTag(row, ranking) {
+  if (ranking.isWorst) {
+    return "Worst";
+  }
+
+  if (ranking.isBest) {
+    return "Best";
+  }
+
+  if (ranking.isMedian) {
+    return "Median";
+  }
+
+  if (!row.depleted && ranking.isBottomQuartile) {
+    return "Weak";
+  }
+
+  return "";
+}
+
+function getScenarioSecondaryTag(stressMetrics) {
+  if (stressMetrics.hasEarlyStress) {
+    return "Early stress";
+  }
+
+  if (!stressMetrics.hasStress && stressMetrics.hasRecovery) {
+    return "Recovery";
+  }
+
+  if (!stressMetrics.hasStress) {
+    return "Stable";
+  }
+
+  return "";
+}
+
+function buildScenarioLabel(row, ranking, stressMetrics) {
+  const parts = [String(row.startYear)];
+
+  const primaryTag = getScenarioPrimaryTag(row, ranking);
+  const secondaryTag = getScenarioSecondaryTag(stressMetrics);
+
+  if (primaryTag) {
+    parts.push(primaryTag);
+  }
+
+  if (secondaryTag) {
+    parts.push(secondaryTag);
+  }
+
+  return parts.join(" • ");
+}
+
+function formatDepletedEnhanced(row, depletionYear, stressMetrics) {
+  if (row.depleted) {
+    if (depletionYear !== null) {
+      return `DEPLETED (yr ${depletionYear})`;
+    }
+
+    return "DEPLETED";
+  }
+
+  if (stressMetrics.hasStress) {
+    return "No • stressed";
+  }
+
+  return "No";
+}
+
+function getStressSeverityLabel(stressMetrics) {
+  if (stressMetrics.maxCutRatio >= 0.2) {
+    return "severe stress";
+  }
+
+  if (stressMetrics.maxCutRatio >= 0.1) {
+    return "moderate stress";
+  }
+
+  if (stressMetrics.hasStress) {
+    return "stress";
+  }
+
+  return "stable";
+}
+
+function buildTerminalRealSecondary(ranking, stressMetrics) {
+  return `${ranking.bucketLabel} • ${getStressSeverityLabel(stressMetrics)}`;
+}
+
+function getScenarioRowStateClass(row, ranking, stressMetrics) {
+  if (row.depleted || ranking.isBottomDecile) {
+    return "is-crisis";
+  }
+
+  if (!row.depleted && ranking.isTopQuartile && !stressMetrics.hasStress) {
+    return "is-strong";
+  }
+
+  if (ranking.isBottomQuartile || stressMetrics.hasStress) {
+    return "is-stress";
+  }
+
+  return "is-normal";
+}
+
+/* ============================
    MULTI-SCENARIO TABLE
    ============================ */
 
 function renderMultiScenarioTable(container, scenarios) {
   const rows = scenarios.map(buildScenarioRow);
+  const rankingMap = computeScenarioRankings(rows);
+
+  const enrichedRows = rows.map((row, index) => {
+    const scenario = scenarios[index];
+    const ranking = rankingMap.get(index) || {
+      rankIndex: index,
+      percentile: 0.5,
+      isWorst: false,
+      isBest: false,
+      isMedian: false,
+      isBottomDecile: false,
+      isBottomQuartile: false,
+      isTopQuartile: false,
+      bucketLabel: "Median"
+    };
+    const stressMetrics = computeStressMetrics(scenario);
+    const depletionYear = getDepletionYear(scenario);
+
+    return {
+      ...row,
+      ranking,
+      stressMetrics,
+      depletionYear
+    };
+  });
 
   const section = document.createElement("section");
   section.className = "scenario-table-section";
@@ -263,26 +511,36 @@ function renderMultiScenarioTable(container, scenarios) {
     createCell("th", "Start year"),
     createCell("th", "End year"),
     createCell("th", "Depleted"),
-    createCell("th", "Terminal real"),
-    createCell("th", "Terminal nominal")
+    createCell("th", "Ending value (real)"),
+    createCell("th", "Ending value (nominal)")
   );
 
   thead.appendChild(headRow);
 
   const tbody = document.createElement("tbody");
 
-  rows.forEach((row) => {
+  enrichedRows.forEach((row) => {
     const tr = document.createElement("tr");
+    tr.classList.add(
+      getScenarioRowStateClass(row, row.ranking, row.stressMetrics)
+    );
 
     tr.append(
-      createCell("td", String(row.startYear)),
+      createCell(
+        "td",
+        buildScenarioLabel(row, row.ranking, row.stressMetrics)
+      ),
       createCell("td", String(row.endYear)),
       createCell(
         "td",
-        formatDepleted(row.depleted),
+        formatDepletedEnhanced(row, row.depletionYear, row.stressMetrics),
         row.depleted ? "is-depleted" : "is-success"
       ),
-      createCell("td", formatCurrency(row.terminalReal), "numeric"),
+      createEnhancedValueCell({
+        primary: formatCurrency(row.terminalReal),
+        secondary: buildTerminalRealSecondary(row.ranking, row.stressMetrics),
+        className: "numeric"
+      }),
       createCell("td", formatCurrency(row.terminalNominal), "numeric")
     );
 
