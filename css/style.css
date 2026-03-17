@@ -363,6 +363,319 @@ main,
   padding: var(--space-5);
 }
 
+
+/* ============================================================
+   Plan insights panel
+   ============================================================ */
+
+.plan-insights-wrap {
+  display: grid;
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.plan-warnings {
+  border: 1px solid var(--border, #d7deea);
+  border-radius: 18px;
+  background: #ffffff;
+  padding: 16px 18px;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
+}
+
+.plan-warnings--strong {
+  border-color: #cfe8d7;
+  background: #f6fbf7;
+}
+
+.plan-warnings--watch {
+  border-color: #ead9b0;
+  background: #fffaf0;
+}
+
+.plan-warnings--risk {
+  border-color: #efc2c2;
+  background: #fff7f7;
+}
+
+.plan-warnings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.plan-warnings-title {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.plan-warnings-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  border: 1px solid currentColor;
+  white-space: nowrap;
+}
+
+.plan-warnings--strong .plan-warnings-chip {
+  color: #20663a;
+  background: #edf8f0;
+}
+
+.plan-warnings--watch .plan-warnings-chip {
+  color: #8a6610;
+  background: #fff5da;
+}
+
+.plan-warnings--risk .plan-warnings-chip {
+  color: #a33a3a;
+  background: #ffe7e7;
+}
+
+.plan-warnings-text {
+  margin: 0;
+  font-size: 0.96rem;
+  line-height: 1.5;
+  color: #334155;
+}
+
+.plan-outlook-card {
+  border: 1px solid var(--border, #d7deea);
+  border-radius: 22px;
+  background: #ffffff;
+  padding: 20px;
+  box-shadow: 0 14px 36px rgba(15, 23, 42, 0.06);
+}
+
+.plan-outlook-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.plan-outlook-title {
+  margin: 0 0 4px;
+  font-size: 1.18rem;
+  line-height: 1.2;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.plan-outlook-description {
+  margin: 0;
+  font-size: 0.94rem;
+  line-height: 1.5;
+  color: #64748b;
+}
+
+.plan-outlook-button {
+  appearance: none;
+  border: 1px solid var(--border, #d7deea);
+  background: #f8fafc;
+  color: #64748b;
+  border-radius: 999px;
+  padding: 8px 12px;
+  font-size: 0.84rem;
+  font-weight: 600;
+  cursor: default;
+}
+
+.plan-outlook-legend {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.plan-outlook-legend-item {
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 16px;
+  background: #f8fafc;
+  border: 1px solid var(--border, #d7deea);
+}
+
+.plan-outlook-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  display: inline-block;
+}
+
+.plan-outlook-dot--strong {
+  background: #2e8b57;
+}
+
+.plan-outlook-dot--watch {
+  background: #d4a017;
+}
+
+.plan-outlook-dot--risk {
+  background: #cf4b4b;
+}
+
+.plan-outlook-legend-label {
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.plan-outlook-legend-text {
+  font-size: 0.8rem;
+  color: #64748b;
+  line-height: 1.35;
+}
+
+.plan-headline-card {
+  border-radius: 18px;
+  padding: 18px;
+  margin-bottom: 18px;
+  border: 1px solid var(--border, #d7deea);
+  background: #fbfdff;
+}
+
+.plan-headline-card--strong {
+  border-color: #cfe8d7;
+  background: #f6fbf7;
+}
+
+.plan-headline-card--watch {
+  border-color: #ead9b0;
+  background: #fffaf0;
+}
+
+.plan-headline-card--risk {
+  border-color: #efc2c2;
+  background: #fff7f7;
+}
+
+.plan-headline-top {
+  margin-bottom: 10px;
+}
+
+.plan-headline-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  border: 1px solid currentColor;
+}
+
+.plan-headline-card--strong .plan-headline-badge {
+  color: #20663a;
+  background: #edf8f0;
+}
+
+.plan-headline-card--watch .plan-headline-badge {
+  color: #8a6610;
+  background: #fff5da;
+}
+
+.plan-headline-card--risk .plan-headline-badge {
+  color: #a33a3a;
+  background: #ffe7e7;
+}
+
+.plan-headline-title {
+  margin: 0 0 6px;
+  font-size: 1.08rem;
+  line-height: 1.35;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.plan-headline-text {
+  margin: 0;
+  font-size: 0.94rem;
+  line-height: 1.5;
+  color: #475569;
+}
+
+.plan-insights-groups {
+  display: grid;
+  gap: 18px;
+}
+
+.insight-group {
+  display: grid;
+  gap: 10px;
+}
+
+.insight-group-title {
+  font-size: 0.86rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: #475569;
+}
+
+.insight-metric-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.insight-metric-card {
+  min-height: 114px;
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid var(--border, #d7deea);
+  background: #ffffff;
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.03);
+}
+
+.insight-metric-label {
+  margin-bottom: 8px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #64748b;
+  line-height: 1.35;
+}
+
+.insight-metric-value {
+  font-size: 1.08rem;
+  line-height: 1.2;
+  font-weight: 800;
+  color: #0f172a;
+  margin-bottom: 6px;
+  word-break: break-word;
+}
+
+.insight-metric-hint {
+  font-size: 0.82rem;
+  line-height: 1.4;
+  color: #64748b;
+}
+
+@media (max-width: 980px) {
+  .plan-outlook-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .plan-outlook-legend {
+    grid-template-columns: 1fr;
+  }
+
+  .insight-metric-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* ============================================================
    7. Historical chart
    ============================================================ */
