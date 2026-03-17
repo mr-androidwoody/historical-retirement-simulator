@@ -21,26 +21,24 @@ export function runHistoricalMode(inputs) {
     throw new Error("Historical simulation requires a valid simulationYears value.");
   }
 
-  if (series.length < horizon) {
-    throw new Error("Historical dataset is shorter than the simulation horizon.");
-  }
-
   const historicalScope = inputs?.historicalScope ?? "all";
   const selectedHistoricalStartYear = Number(inputs?.selectedHistoricalStartYear);
+
+  if (historicalScope !== "single" && series.length < horizon) {
+    throw new Error("Historical dataset is shorter than the simulation horizon.");
+  }
 
   let startIndices = [];
   const windowCount = series.length - horizon + 1;
 
   if (historicalScope === "single") {
-    const matchedStartIndex = series.findIndex((entry, index) => {
-      const year = Number(entry?.year);
-      const hasFullWindow = index + horizon <= series.length;
-      return year === selectedHistoricalStartYear && hasFullWindow;
+    const matchedStartIndex = series.findIndex((entry) => {
+      return Number(entry?.year) === selectedHistoricalStartYear;
     });
 
     if (matchedStartIndex === -1) {
       throw new Error(
-        `Historical start year ${selectedHistoricalStartYear} was not found or does not support a ${horizon}-year simulation window.`
+        `Historical start year ${selectedHistoricalStartYear} was not found in the dataset.`
       );
     }
 
@@ -51,31 +49,42 @@ export function runHistoricalMode(inputs) {
 
   const scenarios = [];
 
-    for (const startIndex of startIndices) {
-      const window = series.slice(startIndex, startIndex + horizon);
-      const returnsProvider = createHistoricalReturnsProvider(window);
-    
-      const scenario = simulateScenario({
-        inputs,
-        returnsProvider
-      });
-    
-      scenarios.push({
-        scenarioId: startIndex + 1,
-        startYear: window[0]?.year ?? "",
-        endYear: window[window.length - 1]?.year ?? "",
-        ...scenario
-      });
+  for (const startIndex of startIndices) {
+    const endIndexExclusive =
+      historicalScope === "single"
+        ? series.length
+        : startIndex + horizon;
+
+    const window = series.slice(startIndex, endIndexExclusive);
+
+    if (!Array.isArray(window) || window.length === 0) {
+      throw new Error(`No historical data available for start index ${startIndex}.`);
     }
-    
-    // ADD THIS (debug only)
-    console.log(
-      scenarios
-        .filter(s => s.depleted === false)
-        .map(s => s.startYear)
-    );
-    
-    const summary = aggregateScenarioResults(scenarios);
+
+    const returnsProvider = createHistoricalReturnsProvider(window);
+
+    const scenarioInputs =
+      historicalScope === "single"
+        ? {
+            ...inputs,
+            simulationYears: window.length
+          }
+        : inputs;
+
+    const scenario = simulateScenario({
+      inputs: scenarioInputs,
+      returnsProvider
+    });
+
+    scenarios.push({
+      scenarioId: startIndex + 1,
+      startYear: window[0]?.year ?? "",
+      endYear: window[window.length - 1]?.year ?? "",
+      ...scenario
+    });
+  }
+
+  const summary = aggregateScenarioResults(scenarios);
 
   return {
     scenarios,
