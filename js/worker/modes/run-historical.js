@@ -1,6 +1,6 @@
 import { simulateScenario } from "../../model/engine.js";
 import { createHistoricalReturnsProvider } from "../../model/returns/historical.js";
-import { aggregateScenarios } from "../../model/analysis/aggregator.js";
+import { aggregateScenarioResults } from "../../model/analysis/aggregator.js";
 
 export function runHistoricalMode(inputs) {
   const dataset = inputs?.dataset;
@@ -68,7 +68,7 @@ export function runHistoricalMode(inputs) {
     });
   }
 
-  const summary = aggregateScenarios(scenarios);
+  const summary = aggregateScenarioResults(scenarios);
 
   return {
     scenarios,
