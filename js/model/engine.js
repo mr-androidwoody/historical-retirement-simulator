@@ -1,5 +1,3 @@
-throw new Error("ENGINE BREAK TEST");
-
 export function simulateScenario({ inputs, returnsProvider }) {
   const initialPortfolio = toNumber(
     inputs.startingPortfolio ?? inputs.initialPortfolio ?? 0
@@ -47,9 +45,7 @@ export function simulateScenario({ inputs, returnsProvider }) {
     let windfall = 0;
 
     for (const person of people) {
-      if (!person || person.include === false) {
-        continue;
-      }
+      if (!person || person.include === false) continue;
 
       const currentAge = toNumber(person.currentAge ?? 0);
       const statePensionAge = toNumber(person.statePensionAge ?? 0);
@@ -78,18 +74,20 @@ export function simulateScenario({ inputs, returnsProvider }) {
       }
     }
 
-    const inflationIncreaseApplied =
+    // === GK INFLATION RULE ===
+    const inflationAllowed =
       year > 0 &&
       spendingBasis === "real" &&
-      shouldApplyInflationIncrease(previousPortfolioReturn);
+      previousPortfolioReturn !== null &&
+      previousPortfolioReturn >= 0;
 
-    if (inflationIncreaseApplied) {
+    if (inflationAllowed) {
       currentPlannedSpending *= 1 + inflation;
     }
 
     const targetSpending = currentPlannedSpending;
 
-    const guardrailResult = applyGuardrails({
+    const { actualSpending, cut, raise } = applyGuardrails({
       enabled: guardrailsEnabled,
       targetSpending,
       startPortfolio,
@@ -101,10 +99,7 @@ export function simulateScenario({ inputs, returnsProvider }) {
       raisePercent: guardrailRaise
     });
 
-    const actualSpending = guardrailResult.actualSpending;
-    const cut = guardrailResult.cut;
-    const raise = guardrailResult.raise;
-
+    // Persist adjusted spending
     currentPlannedSpending = actualSpending;
 
     const totalIncome = statePension + otherIncome + windfall;
@@ -156,7 +151,7 @@ export function simulateScenario({ inputs, returnsProvider }) {
       inflation,
       realPortfolio,
       depleted,
-      inflationIncreaseApplied
+      inflationApplied: inflationAllowed
     });
 
     pathNominal.push(endPortfolio);
@@ -171,7 +166,9 @@ export function simulateScenario({ inputs, returnsProvider }) {
       : initialPortfolio;
 
   const terminalReal =
-    pathReal.length > 0 ? pathReal[pathReal.length - 1] : initialPortfolio;
+    pathReal.length > 0
+      ? pathReal[pathReal.length - 1]
+      : initialPortfolio;
 
   return {
     yearlyRows,
@@ -181,14 +178,6 @@ export function simulateScenario({ inputs, returnsProvider }) {
     terminalReal,
     depleted
   };
-}
-
-function shouldApplyInflationIncrease(previousPortfolioReturn) {
-  if (previousPortfolioReturn === null) {
-    return false;
-  }
-
-  return previousPortfolioReturn >= 0;
 }
 
 function applyGuardrails({
@@ -232,7 +221,13 @@ function applyGuardrails({
     actualSpending = targetSpending * (1 - cutPercent);
     cut = Math.max(0, targetSpending - actualSpending);
   } else if (currentWithdrawalRate < floorRate) {
-    actualSpending = targetSpending * (1 + raisePercent);
+    const raisedSpending = targetSpending * (1 + raisePercent);
+
+    // === CRITICAL FIX: CAP RAISES ===
+    const maxAllowedSpending =
+      initialSpending * (startPortfolio / initialPortfolio);
+
+    actualSpending = Math.min(raisedSpending, maxAllowedSpending);
     raise = Math.max(0, actualSpending - targetSpending);
   }
 
