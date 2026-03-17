@@ -74,13 +74,21 @@ export function simulateScenario({ inputs, returnsProvider }) {
       }
     }
 
-    // Proper GK inflation rule:
-    // for real spending, skip the inflation increase after a negative prior-year return.
-    const inflationApplied =
-      year > 0 &&
-      spendingBasis === "real" &&
-      previousPortfolioReturn !== null &&
-      previousPortfolioReturn >= 0;
+    // Inflation handling:
+    // - nominal spending: never inflate
+    // - real spending with guardrails off: inflate every year after year 0
+    // - real spending with guardrails on: GK rule, skip inflation after a negative prior-year return
+    let inflationApplied = false;
+
+    if (year > 0 && spendingBasis === "real") {
+      if (guardrailsEnabled) {
+        inflationApplied =
+          previousPortfolioReturn !== null &&
+          previousPortfolioReturn >= 0;
+      } else {
+        inflationApplied = true;
+      }
+    }
 
     if (inflationApplied) {
       currentPlannedSpending *= 1 + inflation;
@@ -90,7 +98,7 @@ export function simulateScenario({ inputs, returnsProvider }) {
 
     // DEBUG — first 3 years only
     if (year < 3) {
-      console.log("ENGINE VERSION: GK_STRICT_V1");
+      console.log("ENGINE VERSION: GK_STRICT_V2");
       console.log("GK INPUT CHECK", {
         year,
         guardrailsEnabled,
@@ -103,7 +111,10 @@ export function simulateScenario({ inputs, returnsProvider }) {
         currentPlannedSpending,
         targetSpending,
         startPortfolio,
-        initialPortfolio
+        initialPortfolio,
+        previousPortfolioReturn,
+        inflation,
+        inflationApplied
       });
     }
 
