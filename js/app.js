@@ -312,7 +312,8 @@ function renderResults(result) {
 
   renderResultsSummary({
     container: resultsSummaryElement,
-    summary
+    summary,
+    scenarios
   });
 
   renderHistoricalChart({
