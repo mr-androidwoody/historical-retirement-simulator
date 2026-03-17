@@ -25,10 +25,34 @@ export function runHistoricalMode(inputs) {
     throw new Error("Historical dataset is shorter than the simulation horizon.");
   }
 
+  const historicalScope = inputs?.historicalScope ?? "all";
+  const selectedHistoricalStartYear = Number(inputs?.selectedHistoricalStartYear);
+
   const scenarios = [];
   const windowCount = series.length - horizon + 1;
 
-  for (let startIndex = 0; startIndex < windowCount; startIndex += 1) {
+  let startIndices = [];
+
+  if (historicalScope === "single") {
+    const matchedStartIndex = series.findIndex((entry, index) => {
+      const year = Number(entry?.year);
+      const hasFullWindow = index + horizon <= series.length;
+
+      return year === selectedHistoricalStartYear && hasFullWindow;
+    });
+
+    if (matchedStartIndex === -1) {
+      throw new Error(
+        `Historical start year ${selectedHistoricalStartYear} was not found or does not support a ${horizon}-year simulation window.`
+      );
+    }
+
+    startIndices = [matchedStartIndex];
+  } else {
+    startIndices = Array.from({ length: windowCount }, (_, index) => index);
+  }
+
+  for (const startIndex of startIndices) {
     const window = series.slice(startIndex, startIndex + horizon);
     const returnsProvider = createHistoricalReturnsProvider(window);
 
