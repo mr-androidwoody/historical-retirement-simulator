@@ -1,3 +1,5 @@
+console.log("ENGINE VERSION: GK_DEBUG_1");
+
 export function simulateScenario({ inputs, returnsProvider }) {
   const initialPortfolio = toNumber(
     inputs.startingPortfolio ?? inputs.initialPortfolio ?? 0
