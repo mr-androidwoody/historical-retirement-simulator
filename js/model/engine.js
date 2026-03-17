@@ -17,6 +17,12 @@ export function simulateScenario({ inputs, returnsProvider }) {
 
   const people = Array.isArray(inputs.people) ? inputs.people : [];
 
+  const guardrailsEnabled = Boolean(inputs.useGuardrails ?? false);
+  const guardrailFloor = toNumber(inputs.guardrailFloor ?? 0);
+  const guardrailCeiling = toNumber(inputs.guardrailCeiling ?? 0);
+  const guardrailCut = toNumber(inputs.guardrailCut ?? 0);
+  const guardrailRaise = toNumber(inputs.guardrailRaise ?? 0);
+
   let portfolio = initialPortfolio;
   let depleted = false;
 
@@ -25,10 +31,15 @@ export function simulateScenario({ inputs, returnsProvider }) {
   const pathReal = [];
 
   let inflationIndex = 1;
+  let currentPlannedSpending = annualSpending;
 
   for (let year = 0; year < years; year += 1) {
     const returns = returnsProvider.getYearReturns(year) ?? {};
     const inflation = toNumber(returns.inflation ?? 0);
+
+    if (year > 0 && spendingBasis === "real") {
+      currentPlannedSpending *= 1 + inflation;
+    }
 
     const startPortfolio = portfolio;
 
@@ -68,18 +79,26 @@ export function simulateScenario({ inputs, returnsProvider }) {
       }
     }
 
-    const targetSpending =
-      spendingBasis === "real"
-        ? annualSpending * inflationIndex
-        : annualSpending;
+    const targetSpending = currentPlannedSpending;
 
-    const actualSpending = targetSpending;
-    const cut = 0;
-    const shortfall = 0;
+    const { actualSpending, cut } = applyGuardrails({
+      enabled: guardrailsEnabled,
+      targetSpending,
+      startPortfolio,
+      initialPortfolio,
+      initialSpending: annualSpending,
+      floorGuardrail: guardrailFloor,
+      ceilingGuardrail: guardrailCeiling,
+      cutPercent: guardrailCut,
+      raisePercent: guardrailRaise
+    });
+
+    currentPlannedSpending = actualSpending;
 
     const totalIncome = statePension + otherIncome + windfall;
     const requiredWithdrawal = Math.max(0, actualSpending - totalIncome);
     const portfolioWithdrawal = Math.min(requiredWithdrawal, startPortfolio);
+    const shortfall = Math.max(0, requiredWithdrawal - startPortfolio);
 
     portfolio = startPortfolio - portfolioWithdrawal;
 
@@ -145,6 +164,51 @@ export function simulateScenario({ inputs, returnsProvider }) {
     terminalNominal,
     terminalReal,
     depleted
+  };
+}
+
+function applyGuardrails({
+  enabled,
+  targetSpending,
+  startPortfolio,
+  initialPortfolio,
+  initialSpending,
+  floorGuardrail,
+  ceilingGuardrail,
+  cutPercent,
+  raisePercent
+}) {
+  if (!enabled) {
+    return {
+      actualSpending: targetSpending,
+      cut: 0
+    };
+  }
+
+  if (startPortfolio <= 0 || initialPortfolio <= 0 || initialSpending <= 0) {
+    return {
+      actualSpending: targetSpending,
+      cut: 0
+    };
+  }
+
+  const currentWithdrawalRate = targetSpending / startPortfolio;
+  const initialWithdrawalRate = initialSpending / initialPortfolio;
+
+  const floorRate = initialWithdrawalRate * (1 - floorGuardrail);
+  const ceilingRate = initialWithdrawalRate * (1 + ceilingGuardrail);
+
+  let actualSpending = targetSpending;
+
+  if (currentWithdrawalRate > ceilingRate) {
+    actualSpending = targetSpending * (1 - cutPercent);
+  } else if (currentWithdrawalRate < floorRate) {
+    actualSpending = targetSpending * (1 + raisePercent);
+  }
+
+  return {
+    actualSpending,
+    cut: Math.max(0, targetSpending - actualSpending)
   };
 }
 
