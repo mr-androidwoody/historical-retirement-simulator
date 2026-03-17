@@ -157,63 +157,6 @@ function getSingleScenarioMetrics(summary, scenario) {
   };
 }
 
-function getMultiScenarioMetrics(summary, scenarios) {
-  const allScenarios = Array.isArray(scenarios) ? scenarios : [];
-
-  const enriched = allScenarios.map((scenario) => ({
-    scenario,
-    terminalNominal: getScenarioTerminalNominal(scenario),
-    terminalReal: getScenarioTerminalReal(scenario),
-    minimumWealth: getScenarioMinimumWealth(scenario),
-    depletionYear: getScenarioDepletionYear(scenario),
-    depleted: Boolean(scenario?.depleted)
-  }));
-
-  const depletedScenarios = enriched.filter((item) => item.depleted);
-
-  const worstScenario = enriched.reduce((worst, item) => {
-    if (!worst || item.terminalNominal < worst.terminalNominal) {
-      return item;
-    }
-    return worst;
-  }, null);
-
-  const bestScenario = enriched.reduce((best, item) => {
-    if (!best || item.terminalNominal > best.terminalNominal) {
-      return item;
-    }
-    return best;
-  }, null);
-
-  const weakCaseScenario =
-    enriched
-      .slice()
-      .sort((left, right) => left.terminalNominal - right.terminalNominal)[
-      Math.max(0, Math.floor((enriched.length - 1) * 0.1))
-    ] ?? null;
-
-  const scenarioCount = toFiniteNumber(summary?.scenarioCount ?? enriched.length);
-  const successRate = toFiniteNumber(summary?.successRate);
-  const medianTerminalWealth = toFiniteNumber(summary?.medianTerminalWealth);
-  const p10TerminalWealth = toFiniteNumber(summary?.p10TerminalWealth);
-  const p90TerminalWealth = toFiniteNumber(summary?.p90TerminalWealth);
-
-  return {
-    scenarioCount,
-    successRate,
-    medianTerminalWealth,
-    p10TerminalWealth,
-    p90TerminalWealth,
-    depletedCount: depletedScenarios.length,
-    depletedShare: safeRatioPercent(depletedScenarios.length, scenarioCount),
-    downsideSpread: medianTerminalWealth - p10TerminalWealth,
-    weakCaseDepletionYear: weakCaseScenario?.depletionYear ?? null,
-    worstStartYear: worstScenario?.scenario?.startYear ?? null,
-    bestStartYear: bestScenario?.scenario?.startYear ?? null,
-    worstTerminalOutcome: worstScenario?.terminalNominal ?? 0
-  };
-}
-
 function getSingleWarning(metrics) {
   if (metrics.depleted) {
     return {
@@ -235,30 +178,6 @@ function getSingleWarning(metrics) {
     tone: "strong",
     label: "No major risks",
     text: "This selected path stays intact without material spending stress under the current assumptions."
-  };
-}
-
-function getMultiWarning(metrics) {
-  if (metrics.successRate < 70 || metrics.depletedShare > 30) {
-    return {
-      tone: "risk",
-      label: "Risk",
-      text: "A meaningful share of historical paths fail, which suggests the plan is vulnerable to poor sequence risk."
-    };
-  }
-
-  if (metrics.successRate < 90 || metrics.p10TerminalWealth <= 0) {
-    return {
-      tone: "watch",
-      label: "Watch",
-      text: "The plan is workable in many paths, but the weak case is thin enough to deserve attention."
-    };
-  }
-
-  return {
-    tone: "strong",
-    label: "No major risks",
-    text: "Historical coverage looks resilient across most tested scenarios, with no major weakness standing out."
   };
 }
 
@@ -286,33 +205,6 @@ function getSingleHeadline(metrics) {
     badge: "Strong",
     title: "This selected path remains stable under the current assumptions.",
     text: "Spending is broadly maintained and the plan does not show material stress in this historical path."
-  };
-}
-
-function getMultiHeadline(metrics) {
-  if (metrics.successRate < 70 || metrics.p10TerminalWealth <= 0) {
-    return {
-      tone: "risk",
-      badge: "Risk",
-      title: "The plan is vulnerable across the historical range tested.",
-      text: "Weak-case outcomes are poor enough that this plan likely needs either lower withdrawals or more flexibility."
-    };
-  }
-
-  if (metrics.successRate < 90 || metrics.depletedCount > 0) {
-    return {
-      tone: "watch",
-      badge: "Watch",
-      title: "The plan is broadly workable, but the downside tail is not fully comfortable.",
-      text: "Most scenarios survive, though weaker start years produce materially worse outcomes than the middle case."
-    };
-  }
-
-  return {
-    tone: "strong",
-    badge: "Strong",
-    title: "The plan looks resilient across the historical scenarios tested.",
-    text: "Most paths remain intact and the weak case stays meaningfully above depletion."
   };
 }
 
@@ -404,27 +296,6 @@ function getSingleChartStats(summary, scenario) {
   ];
 }
 
-function getMultiChartStats(summary) {
-  return [
-    {
-      label: "10th percentile",
-      value: formatCurrency(summary?.p10TerminalWealth)
-    },
-    {
-      label: "Median",
-      value: formatCurrency(summary?.medianTerminalWealth)
-    },
-    {
-      label: "90th percentile",
-      value: formatCurrency(summary?.p90TerminalWealth)
-    },
-    {
-      label: "Success rate",
-      value: formatPercent(summary?.successRate, 1)
-    }
-  ];
-}
-
 function getSingleSpendingStats(scenario) {
   const rows = scenario?.yearlyRows ?? [];
 
@@ -444,31 +315,6 @@ function getSingleSpendingStats(scenario) {
     {
       label: "Shortfall years",
       value: String(countBy(rows, (row) => toFiniteNumber(row?.shortfall) > 0))
-    }
-  ];
-}
-
-function getMultiSpendingStats(summary, scenarios) {
-  const scenarioCount = toFiniteNumber(summary?.scenarioCount ?? scenarios?.length ?? 0);
-  const successRate = toFiniteNumber(summary?.successRate);
-  const depletedCount = Math.max(0, Math.round(scenarioCount * (1 - successRate / 100)));
-
-  return [
-    {
-      label: "Success rate",
-      value: formatPercent(successRate, 1)
-    },
-    {
-      label: "Scenarios",
-      value: String(scenarioCount)
-    },
-    {
-      label: "Depleted",
-      value: String(depletedCount)
-    },
-    {
-      label: "Weak case ending",
-      value: formatCurrency(summary?.p10TerminalWealth)
     }
   ];
 }
@@ -605,16 +451,16 @@ function renderResultsHeader(container, uiState) {
   `;
 }
 
-function renderInvestmentPanel({ summary, scenarios, isSingleScenario }) {
-  const scenario = isSingleScenario ? scenarios?.[0] ?? null : null;
-  const stats = isSingleScenario ? getSingleChartStats(summary, scenario) : getMultiChartStats(summary);
+function renderInvestmentPanel({ summary, scenarios }) {
+  const scenario = scenarios?.[0] ?? null;
+  const stats = getSingleChartStats(summary, scenario);
 
   return `
     <section class="results-panel">
       <div class="results-panel-header">
         <h3 class="results-panel-title">Investment projection</h3>
         <p class="results-panel-subtitle">
-          Shows the central outcome, the likely range of outcomes, and the selected path.
+          Shows the selected historical path and the portfolio outcome through time.
         </p>
       </div>
 
@@ -626,9 +472,9 @@ function renderInvestmentPanel({ summary, scenarios, isSingleScenario }) {
   `;
 }
 
-function renderSpendingPanel({ summary, scenarios, isSingleScenario }) {
-  const scenario = isSingleScenario ? scenarios?.[0] ?? null : null;
-  const stats = isSingleScenario ? getSingleSpendingStats(scenario) : getMultiSpendingStats(summary, scenarios);
+function renderSpendingPanel({ scenarios }) {
+  const scenario = scenarios?.[0] ?? null;
+  const stats = getSingleSpendingStats(scenario);
 
   return `
     <section class="results-panel">
@@ -678,52 +524,14 @@ function renderSingleModeGroups(summary, scenario) {
   };
 }
 
-function renderMultiModeGroups(summary, scenarios) {
-  const metrics = getMultiScenarioMetrics(summary, scenarios);
-
-  return {
-    warning: getMultiWarning(metrics),
-    headline: getMultiHeadline(metrics),
-    groups: [
-      createMetricGroup("Outcome summary", [
-        createMetricTile("Plan success", formatPercent(metrics.successRate, 1), "Share of scenarios that avoid depletion"),
-        createMetricTile("Median ending portfolio", formatCurrency(metrics.medianTerminalWealth), "Middle historical outcome"),
-        createMetricTile("Weak-case ending portfolio", formatCurrency(metrics.p10TerminalWealth), "10th percentile outcome")
-      ]),
-      createMetricGroup("Downside resilience", [
-        createMetricTile("Depleted scenarios", String(metrics.depletedCount), "Count of failed historical paths"),
-        createMetricTile("Weak-case depletion", metrics.weakCaseDepletionYear ? String(metrics.weakCaseDepletionYear) : "None", metrics.weakCaseDepletionYear ? "Weak case depletes" : "Weak case still survives"),
-        createMetricTile("Downside spread", formatCurrency(metrics.downsideSpread), "Gap between median and weak case")
-      ]),
-      createMetricGroup("Range of outcomes", [
-        createMetricTile("Upside ending portfolio", formatCurrency(metrics.p90TerminalWealth), "90th percentile outcome"),
-        createMetricTile("Worst start year", metrics.worstStartYear ? String(metrics.worstStartYear) : "—", "Lowest terminal outcome"),
-        createMetricTile("Best start year", metrics.bestStartYear ? String(metrics.bestStartYear) : "—", "Highest terminal outcome")
-      ]),
-      createMetricGroup("Plan breadth", [
-        createMetricTile("Scenario count", String(metrics.scenarioCount), "Historical windows tested"),
-        createMetricTile("Share depleted", formatPercent(metrics.depletedShare, 1), "Fraction of paths that fail"),
-        createMetricTile("Worst terminal outcome", formatCurrency(metrics.worstTerminalOutcome), "Most adverse end state")
-      ])
-    ]
-  };
-}
-
 function renderPlanInsights({ container, summary, scenarios }) {
   if (!container) {
     return;
   }
 
-  const isSingleScenario = summary?.type === "single-scenario" || summary?.type === "single";
-  const selectedScenario = isSingleScenario ? scenarios?.[0] ?? null : null;
-
-  const content = isSingleScenario
-    ? renderSingleModeGroups(summary, selectedScenario)
-    : renderMultiModeGroups(summary, scenarios);
-
-  const description = isSingleScenario
-    ? "Interpretation for the currently selected path."
-    : "Interpretation across the full historical range tested.";
+  const selectedScenario = scenarios?.[0] ?? null;
+  const content = renderSingleModeGroups(summary, selectedScenario);
+  const description = "Interpretation for the selected historical scenario.";
 
   container.innerHTML = `
     <div class="plan-insights-wrap">
@@ -762,14 +570,12 @@ export function renderResultsDashboard({
     return;
   }
 
-  const isSingleScenario = summary?.type === "single-scenario" || summary?.type === "single";
-
   renderResultsHeader(summaryContainer, uiState);
 
   dashboardContainer.innerHTML = `
     <section class="results-chart-grid">
-      ${renderInvestmentPanel({ summary, scenarios, isSingleScenario })}
-      ${renderSpendingPanel({ summary, scenarios, isSingleScenario })}
+      ${renderInvestmentPanel({ summary, scenarios })}
+      ${renderSpendingPanel({ scenarios })}
     </section>
     <div id="planInsights"></div>
   `;

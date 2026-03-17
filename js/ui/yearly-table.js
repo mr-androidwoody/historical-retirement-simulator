@@ -674,9 +674,5 @@ export function renderScenarioTable({ container, scenarios }) {
     return;
   }
 
-  if (scenarios.length === 1) {
-    renderSingleScenarioTable(container, scenarios[0]);
-  } else {
-    renderMultiScenarioTable(container, scenarios);
-  }
+  renderSingleScenarioTable(container, scenarios[0]);
 }

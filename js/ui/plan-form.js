@@ -5,7 +5,6 @@ const HISTORICAL_SCENARIO_GROUPS = [
       { value: 1929, label: "1929 – Severe crash (Great Depression)" },
       { value: 2008, label: "2008 – Severe crash (GFC)" },
       { value: 2000, label: "2000 – Crash + stagnation (Dot-com)" },
-      { value: 2007, label: "2007 – Pre-crisis peak (GFC timing)" }
     ]
   },
   {
