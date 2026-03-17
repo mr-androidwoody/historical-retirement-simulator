@@ -653,9 +653,36 @@ main,
   gap: 14px;
 }
 
+.plan-form-section .field-grid > [data-historical-controls] + .field {
+  margin-top: 0;
+}
+
 /* Checkboxes span full row when inside the grid */
 .plan-form-section .field-grid .field-checkbox {
   grid-column: 1 / -1;
+}
+
+/* Historical mode scope controls */
+.plan-form-section .field-grid [data-historical-controls] {
+  grid-column: 1 / -1;
+}
+
+.radio-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.historical-scope-radio-group {
+  margin-top: 4px;
+}
+
+.inline-checkbox input[type="radio"] {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: #2d5bff;
+  flex: 0 0 auto;
 }
 
 /* Preserve vertical rhythm inside generated sections */
@@ -740,6 +767,12 @@ main,
   font-size: 0.96rem;
   font-weight: 500;
   line-height: 1.35;
+}
+
+.field[hidden],
+[data-historical-controls][hidden],
+[data-historical-start-year-field][hidden] {
+  display: none !important;
 }
 
 /* ============================================================
