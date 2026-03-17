@@ -32,14 +32,11 @@ export function simulateScenario({ inputs, returnsProvider }) {
 
   let inflationIndex = 1;
   let currentPlannedSpending = annualSpending;
+  let previousPortfolioReturn = null;
 
   for (let year = 0; year < years; year += 1) {
     const returns = returnsProvider.getYearReturns(year) ?? {};
     const inflation = toNumber(returns.inflation ?? 0);
-
-    if (year > 0 && spendingBasis === "real") {
-      currentPlannedSpending *= 1 + inflation;
-    }
 
     const startPortfolio = portfolio;
 
@@ -79,9 +76,18 @@ export function simulateScenario({ inputs, returnsProvider }) {
       }
     }
 
+    const inflationIncreaseApplied =
+      year > 0 &&
+      spendingBasis === "real" &&
+      shouldApplyInflationIncrease(previousPortfolioReturn);
+
+    if (inflationIncreaseApplied) {
+      currentPlannedSpending *= 1 + inflation;
+    }
+
     const targetSpending = currentPlannedSpending;
 
-    const { actualSpending, cut } = applyGuardrails({
+    const guardrailResult = applyGuardrails({
       enabled: guardrailsEnabled,
       targetSpending,
       startPortfolio,
@@ -92,6 +98,10 @@ export function simulateScenario({ inputs, returnsProvider }) {
       cutPercent: guardrailCut,
       raisePercent: guardrailRaise
     });
+
+    const actualSpending = guardrailResult.actualSpending;
+    const cut = guardrailResult.cut;
+    const raise = guardrailResult.raise;
 
     currentPlannedSpending = actualSpending;
 
@@ -133,6 +143,7 @@ export function simulateScenario({ inputs, returnsProvider }) {
       targetSpending,
       actualSpending,
       cut,
+      raise,
       shortfall,
       statePension,
       otherIncome,
@@ -142,11 +153,14 @@ export function simulateScenario({ inputs, returnsProvider }) {
       portfolioReturn,
       inflation,
       realPortfolio,
-      depleted
+      depleted,
+      inflationIncreaseApplied
     });
 
     pathNominal.push(endPortfolio);
     pathReal.push(realPortfolio);
+
+    previousPortfolioReturn = portfolioReturn;
   }
 
   const terminalNominal =
@@ -167,6 +181,14 @@ export function simulateScenario({ inputs, returnsProvider }) {
   };
 }
 
+function shouldApplyInflationIncrease(previousPortfolioReturn) {
+  if (previousPortfolioReturn === null) {
+    return false;
+  }
+
+  return previousPortfolioReturn >= 0;
+}
+
 function applyGuardrails({
   enabled,
   targetSpending,
@@ -181,14 +203,16 @@ function applyGuardrails({
   if (!enabled) {
     return {
       actualSpending: targetSpending,
-      cut: 0
+      cut: 0,
+      raise: 0
     };
   }
 
   if (startPortfolio <= 0 || initialPortfolio <= 0 || initialSpending <= 0) {
     return {
       actualSpending: targetSpending,
-      cut: 0
+      cut: 0,
+      raise: 0
     };
   }
 
@@ -199,16 +223,21 @@ function applyGuardrails({
   const ceilingRate = initialWithdrawalRate * (1 + ceilingGuardrail);
 
   let actualSpending = targetSpending;
+  let cut = 0;
+  let raise = 0;
 
   if (currentWithdrawalRate > ceilingRate) {
     actualSpending = targetSpending * (1 - cutPercent);
+    cut = Math.max(0, targetSpending - actualSpending);
   } else if (currentWithdrawalRate < floorRate) {
     actualSpending = targetSpending * (1 + raisePercent);
+    raise = Math.max(0, actualSpending - targetSpending);
   }
 
   return {
     actualSpending,
-    cut: Math.max(0, targetSpending - actualSpending)
+    cut,
+    raise
   };
 }
 
