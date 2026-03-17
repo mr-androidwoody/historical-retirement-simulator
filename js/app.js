@@ -135,7 +135,7 @@ function updateHeroMetrics(summary) {
     }
 
     if (heroMedianWealthElement) {
-      heroMedianWealthElement.textContent = formatCurrency(summary.terminalWealth);
+      heroMedianWealthElement.textContent = formatCurrency(summary.terminalNominal);
     }
 
     if (heroWorstScenarioElement) {
