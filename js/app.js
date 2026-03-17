@@ -136,42 +136,26 @@ function updateHeroMetrics(summary) {
     return;
   }
 
-  const isSingleScenario = summary.type === "single-scenario" || summary.type === "single";
-
-  if (isSingleScenario) {
-    if (heroSuccessRateElement) {
-      heroSuccessRateElement.textContent = summary.depleted ? "Depleted" : "Sustained";
-    }
-
-    if (heroMedianWealthElement) {
-      heroMedianWealthElement.textContent = formatCurrency(summary.terminalNominal);
-    }
-
-    if (heroWorstScenarioElement) {
-      heroWorstScenarioElement.textContent = formatCurrency(summary.minimumWealth);
-    }
-
-    if (heroScenarioCountElement) {
-      heroScenarioCountElement.textContent = "1";
-    }
-
-    return;
-  }
-
   if (heroSuccessRateElement) {
-    heroSuccessRateElement.textContent = formatPercentage(summary.successRate);
+    heroSuccessRateElement.textContent = summary.depleted
+      ? "Depleted"
+      : "Sustained";
   }
 
   if (heroMedianWealthElement) {
-    heroMedianWealthElement.textContent = formatCurrency(summary.medianTerminalWealth);
+    heroMedianWealthElement.textContent = formatCurrency(
+      summary.terminalNominal
+    );
   }
 
   if (heroWorstScenarioElement) {
-    heroWorstScenarioElement.textContent = formatCurrency(summary.p10TerminalWealth);
+    heroWorstScenarioElement.textContent = formatCurrency(
+      summary.minimumWealth
+    );
   }
 
   if (heroScenarioCountElement) {
-    heroScenarioCountElement.textContent = formatWholeNumber(summary.scenarioCount);
+    heroScenarioCountElement.textContent = "1";
   }
 }
 
