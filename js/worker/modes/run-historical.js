@@ -1,6 +1,6 @@
 import { simulateScenario } from "../../model/engine.js";
 import { createHistoricalReturnsProvider } from "../../model/returns/historical.js";
-import { aggregateScenarioResults } from "../../model/analysis/aggregator.js";
+import { aggregateScenarios } from "../../model/analysis/aggregator.js";
 
 export function runHistoricalMode(inputs) {
   const dataset = inputs?.dataset;
@@ -28,16 +28,13 @@ export function runHistoricalMode(inputs) {
   const historicalScope = inputs?.historicalScope ?? "all";
   const selectedHistoricalStartYear = Number(inputs?.selectedHistoricalStartYear);
 
-  const scenarios = [];
-  const windowCount = series.length - horizon + 1;
-
   let startIndices = [];
+  const windowCount = series.length - horizon + 1;
 
   if (historicalScope === "single") {
     const matchedStartIndex = series.findIndex((entry, index) => {
       const year = Number(entry?.year);
       const hasFullWindow = index + horizon <= series.length;
-
       return year === selectedHistoricalStartYear && hasFullWindow;
     });
 
@@ -51,6 +48,8 @@ export function runHistoricalMode(inputs) {
   } else {
     startIndices = Array.from({ length: windowCount }, (_, index) => index);
   }
+
+  const scenarios = [];
 
   for (const startIndex of startIndices) {
     const window = series.slice(startIndex, startIndex + horizon);
@@ -69,7 +68,7 @@ export function runHistoricalMode(inputs) {
     });
   }
 
-  const summary = aggregateScenarioResults(scenarios);
+  const summary = aggregateScenarios(scenarios);
 
   return {
     scenarios,
