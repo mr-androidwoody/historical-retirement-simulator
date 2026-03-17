@@ -22,6 +22,25 @@ function formatCurrency(value) {
   }).format(number);
 }
 
+function formatYearRange(startYear, endYear) {
+  if (!startYear || !endYear) {
+    return "—";
+  }
+  return `${startYear} → ${endYear}`;
+}
+
+function formatSustainability(depleted, depletionYear) {
+  if (!depleted) {
+    return "Sustained";
+  }
+
+  if (typeof depletionYear === "number") {
+    return `Depleted in year ${depletionYear}`;
+  }
+
+  return "Depleted";
+}
+
 function createMetricCard(label, value) {
   const card = document.createElement("article");
   card.className = "result-card";
@@ -36,6 +55,36 @@ function createMetricCard(label, value) {
 
   card.append(labelElement, valueElement);
   return card;
+}
+
+function renderMultiScenario(grid, summary) {
+  grid.append(
+    createMetricCard("Success rate", formatPercentage(summary.successRate)),
+    createMetricCard("Median terminal wealth", formatCurrency(summary.medianTerminalWealth)),
+    createMetricCard("10th percentile", formatCurrency(summary.p10TerminalWealth)),
+    createMetricCard("90th percentile", formatCurrency(summary.p90TerminalWealth))
+  );
+}
+
+function renderSingleScenario(grid, summary) {
+  grid.append(
+    createMetricCard(
+      "Scenario",
+      formatYearRange(summary.startYear, summary.endYear)
+    ),
+    createMetricCard(
+      "Outcome",
+      formatCurrency(summary.terminalWealth)
+    ),
+    createMetricCard(
+      "Sustainability",
+      formatSustainability(summary.depleted, summary.depletionYear)
+    ),
+    createMetricCard(
+      "Lowest point",
+      formatCurrency(summary.minimumWealth)
+    )
+  );
 }
 
 export function renderResultsSummary({ container, summary }) {
@@ -60,12 +109,11 @@ export function renderResultsSummary({ container, summary }) {
   const grid = document.createElement("div");
   grid.className = "results-summary-grid";
 
-  grid.append(
-    createMetricCard("Success rate", formatPercentage(summary.successRate)),
-    createMetricCard("Median terminal wealth", formatCurrency(summary.medianTerminalWealth)),
-    createMetricCard("10th percentile", formatCurrency(summary.p10TerminalWealth)),
-    createMetricCard("90th percentile", formatCurrency(summary.p90TerminalWealth))
-  );
+  if (summary.type === "single") {
+    renderSingleScenario(grid, summary);
+  } else {
+    renderMultiScenario(grid, summary);
+  }
 
   wrapper.append(heading, grid);
   container.appendChild(wrapper);

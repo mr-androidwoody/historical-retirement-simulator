@@ -1,5 +1,16 @@
+const HISTORICAL_STRESS_YEARS = [
+  { value: 1929, label: "1929 — Great Depression" },
+  { value: 1966, label: "1966 — Inflation shock" },
+  { value: 1973, label: "1973 — Oil crisis" },
+  { value: 2000, label: "2000 — Dot-com crash" },
+  { value: 2008, label: "2008 — Financial crisis" }
+];
+
 const DEFAULTS = {
   mode: "historical",
+  historicalScope: "all",
+  selectedHistoricalStartYear: 2008,
+
   startingPortfolio: 1000000,
   annualSpending: 40000,
   simulationYears: 30,
@@ -126,6 +137,24 @@ function escapeAttribute(value) {
     .replace(/>/g, "&gt;");
 }
 
+function getSelectedHistoricalStartYear(values = DEFAULTS) {
+  const candidate = Number(values.selectedHistoricalStartYear);
+  const isValid = HISTORICAL_STRESS_YEARS.some((year) => year.value === candidate);
+
+  if (isValid) {
+    return candidate;
+  }
+
+  return DEFAULTS.selectedHistoricalStartYear;
+}
+
+function renderHistoricalStartYearOptions(selectedValue) {
+  return HISTORICAL_STRESS_YEARS.map(
+    ({ value, label }) =>
+      `<option value="${value}"${value === selectedValue ? " selected" : ""}>${label}</option>`
+  ).join("");
+}
+
 function renderPersonCard(person, index) {
   const personNumber = index + 1;
   const idPrefix = `person${personNumber}`;
@@ -236,6 +265,8 @@ function renderPlanFormMarkup(values = DEFAULTS) {
     ? values.people
     : DEFAULTS.people;
 
+  const selectedHistoricalStartYear = getSelectedHistoricalStartYear(values);
+
   return `
     <form class="plan-form" novalidate>
       <div class="plan-form-grid">
@@ -250,37 +281,91 @@ function renderPlanFormMarkup(values = DEFAULTS) {
 
         <section class="plan-form-section">
           <h4 class="plan-form-section-title">Core assumptions</h4>
-        
+
           <div class="field-grid">
-        
+
             <label class="field">
               <span class="field-label">Simulation mode</span>
-              <select></select>
+              <select id="simulationMode">
+                <option value="historical"${values.mode === "historical" ? " selected" : ""}>Historical</option>
+                <option value="montecarlo"${values.mode === "montecarlo" ? " selected" : ""}>Monte Carlo</option>
+                <option value="deterministic"${values.mode === "deterministic" ? " selected" : ""}>Deterministic</option>
+              </select>
             </label>
-        
+
+            <div class="field" data-historical-controls>
+              <span class="field-label">Historical scenario scope</span>
+
+              <div class="radio-group historical-scope-radio-group" role="radiogroup" aria-label="Historical scenario scope">
+                <label class="inline-checkbox">
+                  <input
+                    id="historicalScopeAll"
+                    name="historicalScope"
+                    type="radio"
+                    value="all"
+                    ${values.historicalScope !== "single" ? "checked" : ""}
+                  />
+                  <span>All historical scenarios</span>
+                </label>
+
+                <label class="inline-checkbox">
+                  <input
+                    id="historicalScopeSingle"
+                    name="historicalScope"
+                    type="radio"
+                    value="single"
+                    ${values.historicalScope === "single" ? "checked" : ""}
+                  />
+                  <span>Specific start year</span>
+                </label>
+              </div>
+            </div>
+
+            <label class="field" data-historical-start-year-field>
+              <span class="field-label">Historical start year</span>
+              <select id="selectedHistoricalStartYear">
+                ${renderHistoricalStartYearOptions(selectedHistoricalStartYear)}
+              </select>
+            </label>
+
             <label class="field">
               <span class="field-label">Starting portfolio (£)</span>
-              <input type="text">
+              <input
+                id="startingPortfolio"
+                type="text"
+                inputmode="decimal"
+                value="${formatNumberInput(values.startingPortfolio)}"
+              />
             </label>
-        
+
             <label class="field">
               <span class="field-label">Annual spending (£)</span>
-              <input type="text">
+              <input
+                id="annualSpending"
+                type="text"
+                inputmode="decimal"
+                value="${formatNumberInput(values.annualSpending)}"
+              />
             </label>
-        
+
             <label class="field">
               <span class="field-label">Simulation years</span>
-              <input type="text">
+              <input
+                id="simulationYears"
+                type="text"
+                inputmode="numeric"
+                value="${formatNumberInput(values.simulationYears)}"
+              />
             </label>
-        
+
           </div>
         </section>
 
         <section class="plan-form-section">
-        
+
           <div class="plan-form-section-title-row">
             <h4 class="plan-form-section-title">Pension and display</h4>
-        
+
             <label class="inline-checkbox">
               <input
                 id="includeStatePension"
@@ -289,9 +374,9 @@ function renderPlanFormMarkup(values = DEFAULTS) {
               <span>Include state pension</span>
             </label>
           </div>
-        
+
           <div class="field-grid">
-        
+
             <label class="field">
               <span class="field-label">State pension today (£)</span>
               <input
@@ -301,7 +386,7 @@ function renderPlanFormMarkup(values = DEFAULTS) {
                 value="${formatNumberInput(values.statePensionToday)}"
               />
             </label>
-        
+
             <label class="field">
               <span class="field-label">State pension start age</span>
               <input
@@ -311,7 +396,7 @@ function renderPlanFormMarkup(values = DEFAULTS) {
                 value="${formatNumberInput(values.statePensionStartAge)}"
               />
             </label>
-        
+
             <label class="field">
               <span class="field-label">Spending basis</span>
               <select id="spendingBasis">
@@ -319,7 +404,7 @@ function renderPlanFormMarkup(values = DEFAULTS) {
                 <option value="nominal"${values.spendingBasis === "nominal" ? " selected" : ""}>Nominal</option>
               </select>
             </label>
-        
+
             <label class="field">
               <span class="field-label">Display values</span>
               <select id="displayValues">
@@ -327,21 +412,21 @@ function renderPlanFormMarkup(values = DEFAULTS) {
                 <option value="nominal"${values.displayValues === "nominal" ? " selected" : ""}>Nominal</option>
               </select>
             </label>
-        
+
           </div>
-        
+
         </section>
 
         <section class="plan-form-section">
           <div class="plan-form-section-title-row">
             <h4 class="plan-form-section-title">Allocation and fees</h4>
-        
+
             <label class="inline-checkbox">
               <input id="rebalance" type="checkbox"${values.rebalance ? " checked" : ""} />
               <span>Rebalance annually</span>
             </label>
           </div>
-        
+
           <div class="field-grid">
             <label class="field">
               <span class="field-label">Equity allocation (%)</span>
@@ -352,7 +437,7 @@ function renderPlanFormMarkup(values = DEFAULTS) {
                 value="${formatNumberInput(values.equityAllocation)}"
               />
             </label>
-        
+
             <label class="field">
               <span class="field-label">Bond allocation (%)</span>
               <input
@@ -362,7 +447,7 @@ function renderPlanFormMarkup(values = DEFAULTS) {
                 value="${formatNumberInput(values.bondAllocation)}"
               />
             </label>
-        
+
             <label class="field">
               <span class="field-label">Cash allocation (%)</span>
               <input
@@ -372,7 +457,7 @@ function renderPlanFormMarkup(values = DEFAULTS) {
                 value="${formatNumberInput(values.cashAllocation)}"
               />
             </label>
-        
+
             <label class="field">
               <span class="field-label">Annual fees (%)</span>
               <input
@@ -384,16 +469,17 @@ function renderPlanFormMarkup(values = DEFAULTS) {
             </label>
           </div>
         </section>
+
         <section class="plan-form-section">
           <div class="plan-form-section-title-row">
             <h4 class="plan-form-section-title">Guardrails</h4>
-        
+
             <label class="inline-checkbox">
               <input id="useGuardrails" type="checkbox"${values.useGuardrails ? " checked" : ""} />
               <span>Use guardrails</span>
             </label>
           </div>
-        
+
           <div class="field-grid">
             <label class="field">
               <span class="field-label">Guardrail floor (%)</span>
@@ -404,7 +490,7 @@ function renderPlanFormMarkup(values = DEFAULTS) {
                 value="${formatNumberInput(values.guardrailFloor)}"
               />
             </label>
-        
+
             <label class="field">
               <span class="field-label">Guardrail ceiling (%)</span>
               <input
@@ -414,7 +500,7 @@ function renderPlanFormMarkup(values = DEFAULTS) {
                 value="${formatNumberInput(values.guardrailCeiling)}"
               />
             </label>
-        
+
             <label class="field">
               <span class="field-label">Guardrail cut (%)</span>
               <input
@@ -424,7 +510,7 @@ function renderPlanFormMarkup(values = DEFAULTS) {
                 value="${formatNumberInput(values.guardrailCut)}"
               />
             </label>
-        
+
             <label class="field">
               <span class="field-label">Guardrail raise (%)</span>
               <input
@@ -637,13 +723,60 @@ function bindPerson2Toggle(actualForm) {
   };
 }
 
+function bindHistoricalControls(actualForm) {
+  const modeField = actualForm.querySelector("#simulationMode");
+  const scopeFields = Array.from(actualForm.querySelectorAll('input[name="historicalScope"]'));
+  const historicalControls = Array.from(actualForm.querySelectorAll("[data-historical-controls]"));
+  const startYearField = actualForm.querySelector("[data-historical-start-year-field]");
+
+  if (!modeField) {
+    return () => {};
+  }
+
+  const applyState = () => {
+    const isHistoricalMode = modeField.value === "historical";
+    const historicalScope =
+      actualForm.querySelector('input[name="historicalScope"]:checked')?.value || DEFAULTS.historicalScope;
+    const isSingleStartYear = isHistoricalMode && historicalScope === "single";
+
+    historicalControls.forEach((element) => {
+      element.hidden = !isHistoricalMode;
+    });
+
+    if (startYearField) {
+      startYearField.hidden = !isSingleStartYear;
+    }
+  };
+
+  modeField.addEventListener("change", applyState);
+  scopeFields.forEach((field) => field.addEventListener("change", applyState));
+  applyState();
+
+  return () => {
+    modeField.removeEventListener("change", applyState);
+    scopeFields.forEach((field) => field.removeEventListener("change", applyState));
+  };
+}
+
 export function getPlanInputs(form = document.querySelector("#planForm form, #planForm")) {
   const actualForm = ensureFormElement(form);
 
   const mode = getTextValue(actualForm, "#simulationMode", DEFAULTS.mode) || DEFAULTS.mode;
+  const historicalScope =
+    getTextValue(actualForm, 'input[name="historicalScope"]:checked', DEFAULTS.historicalScope) ||
+    DEFAULTS.historicalScope;
 
   const inputs = {
     mode,
+    historicalScope,
+    selectedHistoricalStartYear:
+      historicalScope === "single"
+        ? getNumberValue(
+            actualForm,
+            "#selectedHistoricalStartYear",
+            DEFAULTS.selectedHistoricalStartYear
+          )
+        : null,
 
     startingPortfolio: getNumberValue(actualForm, "#startingPortfolio", DEFAULTS.startingPortfolio),
     annualSpending: getNumberValue(actualForm, "#annualSpending", DEFAULTS.annualSpending),
@@ -724,6 +857,7 @@ export function bindPlanForm({
 
   let actualForm = ensureFormElement(host);
   let unbindPerson2Toggle = bindPerson2Toggle(actualForm);
+  let unbindHistoricalControls = bindHistoricalControls(actualForm);
 
   const handleSubmit = (event) => {
     event.preventDefault();
@@ -736,11 +870,13 @@ export function bindPlanForm({
   const bindCurrentForm = () => {
     actualForm.addEventListener("submit", handleSubmit);
     unbindPerson2Toggle = bindPerson2Toggle(actualForm);
+    unbindHistoricalControls = bindHistoricalControls(actualForm);
   };
 
   const unbindCurrentForm = () => {
     actualForm.removeEventListener("submit", handleSubmit);
     unbindPerson2Toggle();
+    unbindHistoricalControls();
   };
 
   const handleRunClick = () => {
