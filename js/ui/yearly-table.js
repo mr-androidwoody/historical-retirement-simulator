@@ -56,17 +56,11 @@ function createCell(tagName, text, className = "") {
   return cell;
 }
 
-export function renderScenarioTable({ container, scenarios }) {
-  if (!container) {
-    return;
-  }
+/* ============================
+   MULTI-SCENARIO TABLE (existing)
+   ============================ */
 
-  container.innerHTML = "";
-
-  if (!Array.isArray(scenarios) || scenarios.length === 0) {
-    return;
-  }
-
+function renderMultiScenarioTable(container, scenarios) {
   const rows = scenarios.map(buildScenarioRow);
 
   const section = document.createElement("section");
@@ -119,4 +113,87 @@ export function renderScenarioTable({ container, scenarios }) {
   tableWrapper.appendChild(table);
   section.append(heading, tableWrapper);
   container.appendChild(section);
+}
+
+/* ============================
+   SINGLE-SCENARIO YEAR TABLE (new)
+   ============================ */
+
+function renderSingleScenarioTable(container, scenario) {
+  const rows = scenario?.yearlyRows || [];
+
+  if (!Array.isArray(rows) || rows.length === 0) {
+    return;
+  }
+
+  const section = document.createElement("section");
+  section.className = "scenario-table-section";
+
+  const heading = document.createElement("h2");
+  heading.className = "scenario-table-title";
+  heading.textContent = "Year-by-year results";
+
+  const tableWrapper = document.createElement("div");
+  tableWrapper.className = "scenario-table-wrapper";
+
+  const table = document.createElement("table");
+  table.className = "scenario-table";
+
+  const thead = document.createElement("thead");
+  const headRow = document.createElement("tr");
+
+  headRow.append(
+    createCell("th", "Year"),
+    createCell("th", "Portfolio (real)"),
+    createCell("th", "Portfolio (nominal)"),
+    createCell("th", "Depleted")
+  );
+
+  thead.appendChild(headRow);
+
+  const tbody = document.createElement("tbody");
+
+  rows.forEach((row) => {
+    const tr = document.createElement("tr");
+
+    tr.append(
+      createCell("td", String(row.year ?? "")),
+      createCell("td", formatCurrency(row.portfolioReal), "numeric"),
+      createCell("td", formatCurrency(row.portfolioNominal), "numeric"),
+      createCell(
+        "td",
+        formatDepleted(row.depleted),
+        row.depleted ? "is-depleted" : "is-success"
+      )
+    );
+
+    tbody.appendChild(tr);
+  });
+
+  table.append(thead, tbody);
+  tableWrapper.appendChild(table);
+  section.append(heading, tableWrapper);
+  container.appendChild(section);
+}
+
+/* ============================
+   ENTRY POINT
+   ============================ */
+
+export function renderScenarioTable({ container, scenarios }) {
+  if (!container) {
+    return;
+  }
+
+  container.innerHTML = "";
+
+  if (!Array.isArray(scenarios) || scenarios.length === 0) {
+    return;
+  }
+
+  if (scenarios.length === 1) {
+    renderSingleScenarioTable(container, scenarios[0]);
+  } else {
+    renderMultiScenarioTable(container, scenarios);
+  }
 }
