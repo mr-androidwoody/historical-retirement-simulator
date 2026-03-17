@@ -167,7 +167,10 @@ main,
   font-size: 0.95rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 160ms ease, color 160ms ease, border-color 160ms ease,
+  transition:
+    background-color 160ms ease,
+    color 160ms ease,
+    border-color 160ms ease,
     box-shadow 160ms ease;
 }
 
@@ -241,7 +244,10 @@ main,
   font-size: 0.95rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease,
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease,
     box-shadow 160ms ease;
 }
 
@@ -304,11 +310,10 @@ main,
 
 /* ============================================================
    5. Shared card sections
-   Summary / chart / scenario table containers
+   Summary and scenario table containers
    ============================================================ */
 
 .results-summary,
-.chart-section,
 .scenario-table-section {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -363,19 +368,369 @@ main,
   padding: var(--space-5);
 }
 
+/* ============================================================
+   7. Results dashboard shell
+   ============================================================ */
+
+.results-header-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  padding: 18px;
+  margin-top: 20px;
+  box-shadow: var(--shadow);
+}
+
+.results-header-top {
+  padding-bottom: 14px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.results-title {
+  margin: 0 0 4px;
+  font-size: 1.25rem;
+  line-height: 1.2;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.results-subtitle {
+  margin: 0;
+  font-size: 0.94rem;
+  line-height: 1.5;
+  color: #64748b;
+}
+
+.results-toolbar {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.results-toolbar-group {
+  display: grid;
+  gap: 8px;
+}
+
+.results-toolbar-label {
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.results-segmented-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.results-segment-button {
+  appearance: none;
+  min-width: 78px;
+  height: 36px;
+  border-radius: 12px;
+  border: 1px solid #c8d3e5;
+  background: #f8fafc;
+  color: #1e293b;
+  padding: 0 14px;
+  font-size: 0.92rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background 0.16s ease,
+    border-color 0.16s ease,
+    color 0.16s ease,
+    box-shadow 0.16s ease;
+}
+
+.results-segment-button:hover {
+  border-color: #9db3da;
+}
+
+.results-segment-button.is-active {
+  background: #eef4ff;
+  border-color: #4c6fff;
+  color: #2952f3;
+  box-shadow: inset 0 0 0 1px rgba(76, 111, 255, 0.08);
+}
+
+.results-checkbox-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid #c8d3e5;
+  background: #f8fafc;
+  color: #1e293b;
+  font-size: 0.92rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.results-checkbox-pill input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+}
+
+.results-context-note {
+  border: 1px solid #d7deea;
+  border-radius: 16px;
+  background: #f8fafc;
+  padding: 14px 14px 12px;
+}
+
+.results-context-note p {
+  margin: 0 0 8px;
+  font-size: 0.94rem;
+  line-height: 1.5;
+  color: #64748b;
+}
+
+.results-context-note p:last-child {
+  margin-bottom: 0;
+}
+
+.results-chart-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.results-panel {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  padding: 16px;
+  box-shadow: var(--shadow);
+}
+
+.results-panel-header {
+  margin-bottom: 12px;
+}
+
+.results-panel-title {
+  margin: 0 0 4px;
+  font-size: 1.1rem;
+  line-height: 1.2;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.results-panel-subtitle {
+  margin: 0;
+  font-size: 0.94rem;
+  line-height: 1.45;
+  color: #64748b;
+}
+
+.results-chart-slot {
+  min-height: 320px;
+  border-radius: 18px;
+}
+
+.results-chart-empty {
+  min-height: 320px;
+  display: grid;
+  place-items: center;
+  border: 1px dashed #d7deea;
+  border-radius: 18px;
+  color: #64748b;
+  background: #fbfcfe;
+}
+
+.results-svg-chart {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.results-svg-grid-line {
+  stroke: #dbe4f0;
+  stroke-width: 1;
+}
+
+.results-svg-axis-line {
+  stroke: #b9c6d8;
+  stroke-width: 1;
+}
+
+.results-svg-axis-label {
+  fill: #6b7b93;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.results-svg-band {
+  fill: rgba(86, 118, 255, 0.14);
+  stroke: none;
+}
+
+.results-svg-area {
+  stroke: none;
+}
+
+.results-svg-area--actual {
+  fill: rgba(78, 111, 255, 0.12);
+}
+
+.results-svg-area--pension {
+  fill: rgba(255, 140, 60, 0.14);
+}
+
+.results-svg-line {
+  fill: none;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.results-svg-line--primary {
+  stroke: #3f6cff;
+}
+
+.results-svg-line--secondary {
+  stroke: #1f8a7a;
+}
+
+.results-svg-line--planned {
+  stroke: #8a63ff;
+  stroke-width: 2.5;
+  stroke-dasharray: 6 5;
+}
+
+.results-svg-line--actual {
+  stroke: #4c5cff;
+}
+
+.results-svg-line--pension {
+  stroke: #ff8a3d;
+}
+
+.results-svg-line--income {
+  stroke: #1f9d7a;
+}
+
+.results-svg-line--withdrawal {
+  stroke: #ef4444;
+}
+
+.results-svg-line--shortfall {
+  stroke: #ff5f5f;
+  stroke-dasharray: 7 5;
+}
+
+.results-legend-slot {
+  margin-top: 12px;
+}
+
+.results-inline-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid #d7deea;
+  background: #f8fafc;
+}
+
+.results-inline-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #64748b;
+  font-size: 0.8rem;
+  line-height: 1.35;
+  font-weight: 600;
+}
+
+.results-inline-legend-line {
+  width: 18px;
+  height: 0;
+  border-top: 3px solid currentColor;
+  display: inline-block;
+}
+
+.results-inline-legend-line--primary {
+  color: #3f6cff;
+}
+
+.results-inline-legend-line--secondary {
+  color: #1f8a7a;
+}
+
+.results-inline-legend-line--planned {
+  color: #8a63ff;
+}
+
+.results-inline-legend-line--actual {
+  color: #4c5cff;
+}
+
+.results-inline-legend-line--pension {
+  color: #ff8a3d;
+}
+
+.results-inline-legend-line--income {
+  color: #1f9d7a;
+}
+
+.results-inline-legend-line--withdrawal {
+  color: #ef4444;
+}
+
+.results-inline-legend-line--shortfall {
+  color: #ff5f5f;
+}
+
+.results-stat-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.results-stat-card {
+  border: 1px solid #d7deea;
+  border-radius: 14px;
+  background: #ffffff;
+  padding: 10px 12px;
+}
+
+.results-stat-label {
+  margin-bottom: 4px;
+  font-size: 0.8rem;
+  line-height: 1.35;
+  font-weight: 700;
+  color: #64748b;
+}
+
+.results-stat-value {
+  font-size: 1.05rem;
+  line-height: 1.2;
+  font-weight: 800;
+  color: #0f172a;
+  word-break: break-word;
+}
 
 /* ============================================================
-   Plan insights panel
+   8. Plan insights panel
    ============================================================ */
 
 .plan-insights-wrap {
   display: grid;
   gap: 16px;
-  margin-top: 20px;
+  margin-top: 16px;
 }
 
 .plan-warnings {
-  border: 1px solid var(--border, #d7deea);
+  border: 1px solid var(--border);
   border-radius: 18px;
   background: #ffffff;
   padding: 16px 18px;
@@ -447,7 +802,7 @@ main,
 }
 
 .plan-outlook-card {
-  border: 1px solid var(--border, #d7deea);
+  border: 1px solid var(--border);
   border-radius: 22px;
   background: #ffffff;
   padding: 20px;
@@ -479,7 +834,7 @@ main,
 
 .plan-outlook-button {
   appearance: none;
-  border: 1px solid var(--border, #d7deea);
+  border: 1px solid var(--border);
   background: #f8fafc;
   color: #64748b;
   border-radius: 999px;
@@ -504,7 +859,7 @@ main,
   padding: 10px 12px;
   border-radius: 16px;
   background: #f8fafc;
-  border: 1px solid var(--border, #d7deea);
+  border: 1px solid var(--border);
 }
 
 .plan-outlook-dot {
@@ -542,7 +897,7 @@ main,
   border-radius: 18px;
   padding: 18px;
   margin-bottom: 18px;
-  border: 1px solid var(--border, #d7deea);
+  border: 1px solid var(--border);
   background: #fbfdff;
 }
 
@@ -633,7 +988,7 @@ main,
   min-height: 114px;
   padding: 14px;
   border-radius: 16px;
-  border: 1px solid var(--border, #d7deea);
+  border: 1px solid var(--border);
   background: #ffffff;
   box-shadow: 0 6px 16px rgba(15, 23, 42, 0.03);
 }
@@ -661,170 +1016,8 @@ main,
   color: #64748b;
 }
 
-@media (max-width: 980px) {
-  .plan-outlook-header {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .plan-outlook-legend {
-    grid-template-columns: 1fr;
-  }
-
-  .insight-metric-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
 /* ============================================================
-   7. Historical chart
-   ============================================================ */
-
-.chart-section {
-  padding: var(--space-5);
-}
-
-.chart-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--space-4);
-  margin-bottom: var(--space-4);
-}
-
-.chart-title {
-  margin: 0 0 var(--space-2);
-  font-size: 1.3rem;
-  line-height: 1.2;
-  letter-spacing: -0.02em;
-}
-
-.chart-subtitle {
-  margin: 0;
-  color: var(--text-muted);
-  font-size: 0.97rem;
-}
-
-.chart-toggle {
-  display: inline-flex;
-  gap: 8px;
-  padding: 4px;
-  border-radius: 999px;
-  background: var(--surface-muted);
-  border: 1px solid var(--border);
-}
-
-.chart-toggle-button {
-  appearance: none;
-  border: none;
-  background: transparent;
-  color: var(--text-muted);
-  padding: 8px 14px;
-  border-radius: 999px;
-  font: inherit;
-  font-size: 0.92rem;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.chart-toggle-button.is-active {
-  background: #ffffff;
-  color: var(--text);
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
-}
-
-.chart-legend {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  margin-bottom: var(--space-4);
-}
-
-.chart-legend-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 12px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  background: var(--surface-muted);
-  color: var(--text-muted);
-  font-size: 0.92rem;
-  font-weight: 500;
-}
-
-.chart-legend-swatch {
-  width: 14px;
-  border-top: 2px solid currentColor;
-}
-
-.chart-legend-item.is-p90 .chart-legend-swatch {
-  border-top-color: #7c3aed;
-}
-
-.chart-legend-item.is-p50 .chart-legend-swatch {
-  border-top-color: #2563eb;
-}
-
-.chart-legend-item.is-p10 .chart-legend-swatch {
-  border-top-color: #0f766e;
-}
-
-.chart-wrapper {
-  overflow-x: auto;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--surface-muted);
-}
-
-.historical-chart {
-  display: block;
-  width: 100%;
-  min-width: 760px;
-  height: auto;
-}
-
-.chart-grid-line {
-  stroke: #e3eaf3;
-  stroke-width: 1;
-}
-
-.chart-axis-line {
-  stroke: #b8c5d8;
-  stroke-width: 1.25;
-}
-
-.chart-axis-label {
-  fill: var(--text-muted);
-  font-size: 12px;
-}
-
-.chart-line {
-  fill: none;
-  stroke-width: 3;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-.chart-line-p90 {
-  stroke: #7c3aed;
-}
-
-.chart-line-p50 {
-  stroke: #2563eb;
-}
-
-.chart-line-p10 {
-  stroke: #0f766e;
-}
-
-.chart-band {
-  fill: rgba(37, 99, 235, 0.12);
-  stroke: none;
-}
-
-/* ============================================================
-   8. Scenario table
+   9. Scenario table
    ============================================================ */
 
 .scenario-table-section {
@@ -896,7 +1089,7 @@ main,
 }
 
 /* ============================================================
-   9. Generated plan form
+   10. Generated plan form
    The JS renders the whole form into #planForm
    ============================================================ */
 
@@ -1007,7 +1200,7 @@ main,
 }
 
 /* ============================================================
-   10. Generic form fields
+   11. Generic form fields
    Shared by normal sections and person cards
    ============================================================ */
 
@@ -1039,7 +1232,10 @@ main,
   font-size: 1rem;
   line-height: 1.2;
   outline: none;
-  transition: border-color 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    background-color 160ms ease;
   box-sizing: border-box;
 }
 
@@ -1089,7 +1285,7 @@ main,
 }
 
 /* ============================================================
-   11. Fixed income / people cards
+   12. Fixed income / people cards
    Person 1 and Person 2 UI inside the Fixed income section
    ============================================================ */
 
@@ -1178,30 +1374,16 @@ main,
   margin: 0;
 }
 
-@media (max-width: 720px) {
-  .people-grid {
-    flex-direction: column;
-  }
+/* ============================================================
+   13. Responsive
+   Keep all responsive rules together in one place
+   ============================================================ */
 
-  .person-header {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .person-include-toggle {
-    justify-content: flex-start;
-    text-align: left;
-  }
-
-  .person-grid {
+@media (max-width: 1100px) {
+  .results-chart-grid {
     grid-template-columns: 1fr;
   }
 }
-
-/* ============================================================
-   12. Responsive
-   Keep all responsive rules together in one place
-   ============================================================ */
 
 @media (max-width: 980px) {
   .top-summary-bar {
@@ -1222,6 +1404,45 @@ main,
 
   .results-summary-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .plan-outlook-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .plan-outlook-legend {
+    grid-template-columns: 1fr;
+  }
+
+  .insight-metric-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .results-stat-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .people-grid {
+    flex-direction: column;
+  }
+
+  .person-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .person-include-toggle {
+    justify-content: flex-start;
+    text-align: left;
+  }
+
+  .person-grid {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -1251,7 +1472,6 @@ main,
   }
 
   .results-summary,
-  .chart-section,
   .scenario-table-section,
   .planner-card,
   .panel-toolbar,
@@ -1280,15 +1500,6 @@ main,
     min-height: auto;
   }
 
-  .chart-header {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .chart-toggle {
-    align-self: flex-start;
-  }
-
   .person-grid {
     grid-template-columns: 1fr;
   }
@@ -1305,5 +1516,20 @@ main,
   .scenario-table thead th,
   .scenario-table tbody td {
     padding: 12px 14px;
+  }
+}
+
+@media (max-width: 560px) {
+  .results-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .results-segmented-control {
+    flex-wrap: wrap;
+  }
+
+  .results-stat-row {
+    grid-template-columns: 1fr;
   }
 }
