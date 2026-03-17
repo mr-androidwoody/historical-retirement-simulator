@@ -1,368 +1,175 @@
 export function simulateScenario({ inputs, returnsProvider }) {
-  console.log("ENGINE INPUTS", {
-    annualSpending: inputs?.annualSpending,
-    equityAllocation: inputs?.equityAllocation,
-    bondAllocation: inputs?.bondAllocation,
-    cashAllocation: inputs?.cashAllocation,
-    simulationYears: inputs?.simulationYears,
-    useGuardrails: inputs?.useGuardrails,
-    cashRunwayYears: inputs?.cashRunwayYears
-  });
+  const toNumber = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
 
   const initialPortfolio = toNumber(
     inputs.startingPortfolio ?? inputs.initialPortfolio ?? 0
   );
 
   const annualSpending = toNumber(inputs.annualSpending ?? 0);
-  const years = toInteger(inputs.simulationYears ?? inputs.years ?? 0);
+  const years = toNumber(inputs.simulationYears ?? inputs.years ?? 0);
 
   const equityAllocation = toNumber(inputs.equityAllocation ?? 0);
   const bondAllocation = toNumber(inputs.bondAllocation ?? 0);
   const cashAllocation = toNumber(inputs.cashAllocation ?? 0);
 
-  const annualFees = toNumber(inputs.annualFees ?? inputs.fees ?? 0);
-  const statePensionToday = toNumber(inputs.statePensionToday ?? 0);
-  const includeStatePension = Boolean(inputs.includeStatePension);
-  const spendingBasis = String(inputs.spendingBasis ?? "nominal").toLowerCase();
+  const fees = toNumber(inputs.annualFees ?? inputs.fees ?? 0);
 
   const people = Array.isArray(inputs.people) ? inputs.people : [];
 
-  const guardrailsEnabled = Boolean(inputs.useGuardrails ?? false);
-  const guardrailFloor = toNumber(inputs.guardrailFloor ?? 0);
-  const guardrailCeiling = toNumber(inputs.guardrailCeiling ?? 0);
-  const guardrailCut = toNumber(inputs.guardrailCut ?? 0);
-  const guardrailRaise = toNumber(inputs.guardrailRaise ?? 0);
-
-  // Cash runway inputs
-  const cashRunwayYears = Math.max(0, toNumber(inputs.cashRunwayYears ?? 0));
-  const cashRefillCap = Math.max(0, toNumber(inputs.cashRefillCap ?? 0.1));
-
-  let depleted = false;
+  let portfolio = initialPortfolio;
+  let inflationIndex = 1;
 
   const yearlyRows = [];
   const pathNominal = [];
   const pathReal = [];
 
-  let inflationIndex = 1;
-  let currentPlannedSpending = annualSpending;
-  let previousPortfolioReturn = null;
-
-  // Split opening portfolio into cash runway + invested assets
-  let cashBucket = Math.min(initialPortfolio, annualSpending * cashRunwayYears);
-  let investedPortfolio = Math.max(0, initialPortfolio - cashBucket);
+  let depleted = false;
+  let depletionYear = null;
+  let minimumWealth = initialPortfolio;
 
   for (let year = 0; year < years; year += 1) {
-    const returns = returnsProvider.getYearReturns(year) ?? {};
-    const inflation = toNumber(returns.inflation ?? 0);
+    const returns = returnsProvider.getYearReturns(year);
 
-    const startCashBucket = cashBucket;
-    const startInvestedPortfolio = investedPortfolio;
-    const startPortfolio = startCashBucket + startInvestedPortfolio;
+    const portfolioReturn = toNumber(returns?.portfolioReturn);
+    const inflation = toNumber(returns?.inflation);
 
-    let statePension = 0;
+    const startPortfolio = portfolio;
+
+    // -----------------------------
+    // INCOME: PERSON LEVEL
+    // -----------------------------
+    let statePensionPerson1 = 0;
+    let statePensionPerson2 = 0;
+
     let otherIncome = 0;
     let windfall = 0;
 
-    for (const person of people) {
-      if (!person || person.include === false) continue;
+    people.forEach((person, index) => {
+      if (!person?.include) return;
 
-      const currentAge = toNumber(person.currentAge ?? 0);
-      const statePensionAge = toNumber(person.statePensionAge ?? 0);
-      const receivesFullStatePension = Boolean(person.receivesFullStatePension);
-      const personOtherIncome = toNumber(person.otherIncome ?? 0);
-      const incomeYears = toInteger(person.incomeYears ?? 0);
-      const windfallAmount = toNumber(person.windfallAmount ?? 0);
-      const windfallYear = toInteger(person.windfallYear ?? -1);
+      const currentAge = toNumber(person.currentAge) + year;
+      const pensionAge = toNumber(person.statePensionAge);
 
-      const age = currentAge + year;
+      const pensionToday = toNumber(inputs.statePensionToday ?? 0);
+      const receivesFull = person.receivesFullStatePension !== false;
 
-      if (
-        includeStatePension &&
-        receivesFullStatePension &&
-        age >= statePensionAge
-      ) {
-        statePension += statePensionToday;
-      }
+      const pensionValue =
+        inputs.includeStatePension && currentAge >= pensionAge
+          ? (receivesFull ? pensionToday : pensionToday * 0.5) * inflationIndex
+          : 0;
 
+      if (index === 0) statePensionPerson1 = pensionValue;
+      if (index === 1) statePensionPerson2 = pensionValue;
+
+      const incomeYears = toNumber(person.incomeYears);
       if (year < incomeYears) {
-        otherIncome += personOtherIncome;
+        otherIncome += toNumber(person.otherIncome) * inflationIndex;
       }
 
-      if (year === windfallYear) {
-        windfall += windfallAmount;
+      if (year === toNumber(person.windfallYear)) {
+        windfall += toNumber(person.windfallAmount);
       }
-    }
-
-    // Inflation handling
-    let inflationApplied = false;
-
-    if (year > 0 && spendingBasis === "real") {
-      if (guardrailsEnabled) {
-        inflationApplied =
-          previousPortfolioReturn !== null &&
-          previousPortfolioReturn >= 0;
-      } else {
-        inflationApplied = true;
-      }
-    }
-
-    if (inflationApplied) {
-      currentPlannedSpending *= 1 + inflation;
-    }
-
-    const targetSpending = currentPlannedSpending;
-
-    const { actualSpending, cut, raise, decision } = applyGuardrailsGK({
-      enabled: guardrailsEnabled,
-      targetSpending,
-      startPortfolio,
-      initialPortfolio,
-      initialSpending: annualSpending,
-      floorGuardrail: guardrailFloor,
-      ceilingGuardrail: guardrailCeiling,
-      cutPercent: guardrailCut,
-      raisePercent: guardrailRaise
     });
 
-    // Persist chosen spending
-    currentPlannedSpending = actualSpending;
+    const statePension = statePensionPerson1 + statePensionPerson2;
 
-    const totalIncome = statePension + otherIncome + windfall;
-    const requiredWithdrawal = Math.max(0, actualSpending - totalIncome);
+    // -----------------------------
+    // SPENDING
+    // -----------------------------
+    const targetSpending = annualSpending * inflationIndex;
 
-    // Determine this year's invested portfolio return first
-    const portfolioReturn = getPortfolioReturn({
-      returns,
-      equityAllocation,
-      bondAllocation,
-      cashAllocation
-    });
+    let actualSpending = targetSpending;
+    let cut = 0;
 
-    const isBadYear = portfolioReturn < 0;
+    if (inputs.useGuardrails) {
+      const withdrawalRate = portfolio > 0 ? actualSpending / portfolio : 0;
 
-    let withdrawalFromCash = 0;
-    let withdrawalFromInvested = 0;
+      if (withdrawalRate > (inputs.guardrailCeiling ?? 0.2)) {
+        actualSpending *= 1 - (inputs.guardrailCut ?? 0.1);
+        cut = inputs.guardrailCut ?? 0;
+      }
 
-    if (isBadYear && cashBucket > 0) {
-      withdrawalFromCash = Math.min(requiredWithdrawal, cashBucket);
-      withdrawalFromInvested = requiredWithdrawal - withdrawalFromCash;
-    } else {
-      withdrawalFromInvested = requiredWithdrawal;
-    }
-
-    const availableTotal = startPortfolio;
-    const totalWithdrawal = withdrawalFromCash + withdrawalFromInvested;
-    const shortfall = Math.max(0, totalWithdrawal - availableTotal);
-
-    // Cap to available assets if needed
-    if (totalWithdrawal > availableTotal) {
-      const remainingNeededAfterCash = Math.max(
-        0,
-        availableTotal - withdrawalFromCash
-      );
-      withdrawalFromInvested = Math.min(
-        remainingNeededAfterCash,
-        startInvestedPortfolio
-      );
-    }
-
-    cashBucket = Math.max(0, cashBucket - withdrawalFromCash);
-    investedPortfolio = Math.max(0, investedPortfolio - withdrawalFromInvested);
-
-    // Apply returns only to invested assets
-    investedPortfolio *= 1 + portfolioReturn;
-    investedPortfolio *= 1 - annualFees;
-
-    if (investedPortfolio < 0) {
-      investedPortfolio = 0;
-    }
-
-    // Optional refill in non-bad years only
-    const targetCashBucket = currentPlannedSpending * cashRunwayYears;
-    let cashRefill = 0;
-
-    if (!isBadYear && cashRunwayYears > 0 && cashBucket < targetCashBucket) {
-      const refillNeeded = targetCashBucket - cashBucket;
-      const maxRefill = investedPortfolio * cashRefillCap;
-      cashRefill = Math.min(refillNeeded, maxRefill);
-
-      if (cashRefill > 0) {
-        investedPortfolio -= cashRefill;
-        cashBucket += cashRefill;
+      if (withdrawalRate < (inputs.guardrailFloor ?? 0.1)) {
+        actualSpending *= 1 + (inputs.guardrailRaise ?? 0.1);
       }
     }
 
-    const endPortfolio = cashBucket + investedPortfolio;
+    const nonPortfolioIncome = statePension + otherIncome + windfall;
 
-    if (endPortfolio <= 0) {
-      cashBucket = 0;
-      investedPortfolio = 0;
+    let portfolioWithdrawal = Math.max(0, actualSpending - nonPortfolioIncome);
+    let shortfall = 0;
+
+    if (portfolioWithdrawal > portfolio) {
+      shortfall = portfolioWithdrawal - portfolio;
+      portfolioWithdrawal = portfolio;
+    }
+
+    // -----------------------------
+    // APPLY RETURNS
+    // -----------------------------
+    const afterWithdrawal = portfolio - portfolioWithdrawal;
+
+    const grossReturn =
+      equityAllocation * portfolioReturn +
+      bondAllocation * portfolioReturn +
+      cashAllocation * 0;
+
+    const netReturn = grossReturn - fees;
+
+    const endPortfolio = afterWithdrawal * (1 + netReturn);
+
+    portfolio = endPortfolio;
+
+    // -----------------------------
+    // TRACKING
+    // -----------------------------
+    if (!depleted && portfolio <= 0) {
       depleted = true;
+      depletionYear = year;
     }
 
-    inflationIndex *= 1 + inflation;
+    minimumWealth = Math.min(minimumWealth, portfolio);
 
-    const realPortfolio =
-      inflationIndex > 0 ? endPortfolio / inflationIndex : endPortfolio;
+    pathNominal.push(portfolio);
+    pathReal.push(portfolio / inflationIndex);
 
     yearlyRows.push({
       year,
       startPortfolio,
-      startCashBucket,
-      startInvestedPortfolio,
+      endPortfolio,
+
+      portfolioReturn,
+      inflation,
+
       targetSpending,
       actualSpending,
       cut,
-      raise,
-      decision,
+
       statePension,
+      statePensionPerson1,
+      statePensionPerson2,
+
       otherIncome,
       windfall,
-      requiredWithdrawal,
-      withdrawalFromCash,
-      withdrawalFromInvested,
-      portfolioWithdrawal: withdrawalFromCash + withdrawalFromInvested,
-      cashRefill,
-      endCashBucket: cashBucket,
-      endInvestedPortfolio: investedPortfolio,
-      endPortfolio,
+
+      portfolioWithdrawal,
       shortfall,
-      portfolioReturn,
-      inflation,
-      inflationApplied,
-      isBadYear,
-      realPortfolio,
-      depleted
+
+      depleted: portfolio <= 0
     });
 
-    pathNominal.push(endPortfolio);
-    pathReal.push(realPortfolio);
-
-    previousPortfolioReturn = portfolioReturn;
+    inflationIndex *= 1 + inflation;
   }
 
-  const terminalNominal =
-    pathNominal.length > 0
-      ? pathNominal[pathNominal.length - 1]
-      : initialPortfolio;
-
-  const terminalReal =
-    pathReal.length > 0
-      ? pathReal[pathReal.length - 1]
-      : initialPortfolio;
-
-  console.log("ENGINE RESULT", {
-    depleted,
-    terminalNominal,
-    terminalReal
-  });
-
   return {
+    type: "single",
     yearlyRows,
     pathNominal,
     pathReal,
-    terminalNominal,
-    terminalReal,
-    depleted
+    terminalNominal: portfolio,
+    terminalReal: pathReal[pathReal.length - 1] ?? 0,
+    minimumWealth,
+    depleted,
+    depletionYear
   };
-}
-
-function applyGuardrailsGK({
-  enabled,
-  targetSpending,
-  startPortfolio,
-  initialPortfolio,
-  initialSpending,
-  floorGuardrail,
-  ceilingGuardrail,
-  cutPercent,
-  raisePercent
-}) {
-  if (!enabled) {
-    return {
-      actualSpending: targetSpending,
-      cut: 0,
-      raise: 0,
-      decision: "none"
-    };
-  }
-
-  if (startPortfolio <= 0 || initialPortfolio <= 0 || initialSpending <= 0) {
-    return {
-      actualSpending: targetSpending,
-      cut: 0,
-      raise: 0,
-      decision: "none"
-    };
-  }
-
-  const currentWithdrawalRate = targetSpending / startPortfolio;
-  const initialWithdrawalRate = initialSpending / initialPortfolio;
-
-  const lowerGuardrailRate = initialWithdrawalRate * (1 - floorGuardrail);
-  const upperGuardrailRate = initialWithdrawalRate * (1 + ceilingGuardrail);
-
-  let actualSpending = targetSpending;
-  let cut = 0;
-  let raise = 0;
-  let decision = "none";
-
-  if (currentWithdrawalRate > upperGuardrailRate) {
-    actualSpending = targetSpending * (1 - cutPercent);
-    cut = Math.max(0, targetSpending - actualSpending);
-    decision = "cut";
-  } else if (currentWithdrawalRate < lowerGuardrailRate) {
-    actualSpending = targetSpending * (1 + raisePercent);
-    raise = Math.max(0, actualSpending - targetSpending);
-    decision = "raise";
-  }
-
-  return {
-    actualSpending,
-    cut,
-    raise,
-    decision
-  };
-}
-
-function getPortfolioReturn({
-  returns,
-  equityAllocation,
-  bondAllocation,
-  cashAllocation
-}) {
-  if (typeof returns.portfolioReturn === "number") {
-    return returns.portfolioReturn;
-  }
-
-  const equityReturn = toNumber(
-    returns.equityReturn ?? returns.equities ?? 0
-  );
-
-  const bondReturn = toNumber(
-    returns.bondReturn ?? returns.bonds ?? 0
-  );
-
-  const cashReturn = toNumber(
-    returns.cashReturn ??
-      returns.cashlikeReturn ??
-      returns.cashlike ??
-      0
-  );
-
-  return (
-    equityReturn * equityAllocation +
-    bondReturn * bondAllocation +
-    cashReturn * cashAllocation
-  );
-}
-
-function toNumber(value) {
-  const number = Number(value);
-  return Number.isFinite(number) ? number : 0;
-}
-
-function toInteger(value) {
-  const number = Number(value);
-  return Number.isFinite(number) ? Math.trunc(number) : 0;
 }
