@@ -23,7 +23,10 @@ export function simulateScenario({ inputs, returnsProvider }) {
   const guardrailCut = toNumber(inputs.guardrailCut ?? 0);
   const guardrailRaise = toNumber(inputs.guardrailRaise ?? 0);
 
-  let portfolio = initialPortfolio;
+  // Cash runway inputs
+  const cashRunwayYears = Math.max(0, toNumber(inputs.cashRunwayYears ?? 0));
+  const cashRefillCap = Math.max(0, toNumber(inputs.cashRefillCap ?? 0.1));
+
   let depleted = false;
 
   const yearlyRows = [];
@@ -34,11 +37,17 @@ export function simulateScenario({ inputs, returnsProvider }) {
   let currentPlannedSpending = annualSpending;
   let previousPortfolioReturn = null;
 
+  // Split opening portfolio into cash runway + invested assets
+  let cashBucket = Math.min(initialPortfolio, annualSpending * cashRunwayYears);
+  let investedPortfolio = Math.max(0, initialPortfolio - cashBucket);
+
   for (let year = 0; year < years; year += 1) {
     const returns = returnsProvider.getYearReturns(year) ?? {};
     const inflation = toNumber(returns.inflation ?? 0);
 
-    const startPortfolio = portfolio;
+    const startCashBucket = cashBucket;
+    const startInvestedPortfolio = investedPortfolio;
+    const startPortfolio = startCashBucket + startInvestedPortfolio;
 
     let statePension = 0;
     let otherIncome = 0;
@@ -74,10 +83,7 @@ export function simulateScenario({ inputs, returnsProvider }) {
       }
     }
 
-    // Inflation handling:
-    // - nominal spending: never inflate
-    // - real spending with guardrails off: inflate every year after year 0
-    // - real spending with guardrails on: GK rule, skip inflation after a negative prior-year return
+    // Inflation handling
     let inflationApplied = false;
 
     if (year > 0 && spendingBasis === "real") {
@@ -96,28 +102,6 @@ export function simulateScenario({ inputs, returnsProvider }) {
 
     const targetSpending = currentPlannedSpending;
 
-    // DEBUG — first 3 years only
-    if (year < 3) {
-      console.log("ENGINE VERSION: GK_STRICT_V2");
-      console.log("GK INPUT CHECK", {
-        year,
-        guardrailsEnabled,
-        guardrailFloor,
-        guardrailCeiling,
-        guardrailCut,
-        guardrailRaise,
-        spendingBasis,
-        annualSpending,
-        currentPlannedSpending,
-        targetSpending,
-        startPortfolio,
-        initialPortfolio,
-        previousPortfolioReturn,
-        inflation,
-        inflationApplied
-      });
-    }
-
     const { actualSpending, cut, raise, decision } = applyGuardrailsGK({
       enabled: guardrailsEnabled,
       targetSpending,
@@ -130,31 +114,13 @@ export function simulateScenario({ inputs, returnsProvider }) {
       raisePercent: guardrailRaise
     });
 
-    if (year < 3) {
-      console.log("GK RESULT CHECK", {
-        year,
-        targetSpending,
-        actualSpending,
-        cut,
-        raise,
-        decision
-      });
-    }
-
-    // Persist the chosen spending as next year's base.
+    // Persist chosen spending
     currentPlannedSpending = actualSpending;
 
     const totalIncome = statePension + otherIncome + windfall;
     const requiredWithdrawal = Math.max(0, actualSpending - totalIncome);
-    const portfolioWithdrawal = Math.min(requiredWithdrawal, startPortfolio);
-    const shortfall = Math.max(0, requiredWithdrawal - startPortfolio);
 
-    portfolio = startPortfolio - portfolioWithdrawal;
-
-    if (requiredWithdrawal > startPortfolio) {
-      depleted = true;
-    }
-
+    // Determine this year's invested portfolio return first
     const portfolioReturn = getPortfolioReturn({
       returns,
       equityAllocation,
@@ -162,39 +128,105 @@ export function simulateScenario({ inputs, returnsProvider }) {
       cashAllocation
     });
 
-    portfolio *= 1 + portfolioReturn;
-    portfolio *= 1 - annualFees;
+    const isBadYear = portfolioReturn < 0;
 
-    if (portfolio <= 0) {
-      portfolio = 0;
+    let withdrawalFromCash = 0;
+    let withdrawalFromInvested = 0;
+
+    if (isBadYear && cashBucket > 0) {
+      withdrawalFromCash = Math.min(requiredWithdrawal, cashBucket);
+      withdrawalFromInvested = requiredWithdrawal - withdrawalFromCash;
+    } else {
+      withdrawalFromInvested = requiredWithdrawal;
+    }
+
+    const availableTotal = startPortfolio;
+    const totalWithdrawal = withdrawalFromCash + withdrawalFromInvested;
+    const shortfall = Math.max(0, totalWithdrawal - availableTotal);
+
+    // Cap to available assets if needed
+    if (totalWithdrawal > availableTotal) {
+      const remainingNeededAfterCash = Math.max(
+        0,
+        availableTotal - withdrawalFromCash
+      );
+      withdrawalFromInvested = Math.min(
+        remainingNeededAfterCash,
+        startInvestedPortfolio
+      );
+    }
+
+    cashBucket = Math.max(0, cashBucket - withdrawalFromCash);
+    investedPortfolio = Math.max(0, investedPortfolio - withdrawalFromInvested);
+
+    if (requiredWithdrawal > availableTotal) {
+      depleted = true;
+    }
+
+    // Apply returns only to invested assets
+    investedPortfolio *= 1 + portfolioReturn;
+    investedPortfolio *= 1 - annualFees;
+
+    if (investedPortfolio < 0) {
+      investedPortfolio = 0;
+    }
+
+    // Optional refill in non-bad years only
+    const targetCashBucket = currentPlannedSpending * cashRunwayYears;
+    let cashRefill = 0;
+
+    if (!isBadYear && cashRunwayYears > 0 && cashBucket < targetCashBucket) {
+      const refillNeeded = targetCashBucket - cashBucket;
+      const maxRefill = investedPortfolio * cashRefillCap;
+      cashRefill = Math.min(refillNeeded, maxRefill);
+
+      if (cashRefill > 0) {
+        investedPortfolio -= cashRefill;
+        cashBucket += cashRefill;
+      }
+    }
+
+    const endPortfolio = cashBucket + investedPortfolio;
+
+    if (endPortfolio <= 0) {
+      cashBucket = 0;
+      investedPortfolio = 0;
       depleted = true;
     }
 
     inflationIndex *= 1 + inflation;
 
-    const endPortfolio = portfolio;
     const realPortfolio =
       inflationIndex > 0 ? endPortfolio / inflationIndex : endPortfolio;
 
     yearlyRows.push({
       year,
       startPortfolio,
+      startCashBucket,
+      startInvestedPortfolio,
       targetSpending,
       actualSpending,
       cut,
       raise,
       decision,
-      shortfall,
       statePension,
       otherIncome,
       windfall,
-      portfolioWithdrawal,
+      requiredWithdrawal,
+      withdrawalFromCash,
+      withdrawalFromInvested,
+      portfolioWithdrawal: withdrawalFromCash + withdrawalFromInvested,
+      cashRefill,
+      endCashBucket: cashBucket,
+      endInvestedPortfolio: investedPortfolio,
       endPortfolio,
+      shortfall,
       portfolioReturn,
       inflation,
+      inflationApplied,
+      isBadYear,
       realPortfolio,
-      depleted,
-      inflationApplied
+      depleted
     });
 
     pathNominal.push(endPortfolio);
