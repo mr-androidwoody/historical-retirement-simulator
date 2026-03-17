@@ -3,28 +3,6 @@ function toFiniteNumber(value) {
   return Number.isFinite(number) ? number : 0;
 }
 
-function getLastNumber(values) {
-  if (!Array.isArray(values) || values.length === 0) {
-    return 0;
-  }
-
-  return toFiniteNumber(values[values.length - 1]);
-}
-
-function getTerminalWealth(scenario) {
-  if (!scenario || typeof scenario !== "object") {
-    return 0;
-  }
-
-  const realTerminalWealth = getLastNumber(scenario.pathReal);
-
-  if (realTerminalWealth !== 0) {
-    return realTerminalWealth;
-  }
-
-  return getLastNumber(scenario.pathNominal);
-}
-
 function getMinimumWealth(scenario) {
   if (!scenario || typeof scenario !== "object") {
     return 0;
@@ -45,16 +23,22 @@ function getMinimumWealth(scenario) {
   }, Number.POSITIVE_INFINITY);
 }
 
+function getDepletionYear(scenario) {
+  if (!scenario || !Array.isArray(scenario.yearlyRows)) {
+    return null;
+  }
+
+  const row = scenario.yearlyRows.find((r) => r.depleted === true);
+
+  return row ? row.year : null;
+}
+
 function isSuccessfulScenario(scenario) {
   if (!scenario || typeof scenario !== "object") {
     return false;
   }
 
-  if (typeof scenario.depleted === "boolean") {
-    return scenario.depleted === false;
-  }
-
-  return getTerminalWealth(scenario) > 0;
+  return scenario.depleted === false;
 }
 
 function percentileFromSorted(sortedValues, percentile) {
@@ -66,21 +50,22 @@ function percentileFromSorted(sortedValues, percentile) {
     return sortedValues[0];
   }
 
-  const clampedPercentile = Math.max(0, Math.min(100, percentile));
-  const index = (clampedPercentile / 100) * (sortedValues.length - 1);
+  const clamped = Math.max(0, Math.min(100, percentile));
+  const index = (clamped / 100) * (sortedValues.length - 1);
 
-  const lowerIndex = Math.floor(index);
-  const upperIndex = Math.ceil(index);
+  const lower = Math.floor(index);
+  const upper = Math.ceil(index);
 
-  if (lowerIndex === upperIndex) {
-    return sortedValues[lowerIndex];
+  if (lower === upper) {
+    return sortedValues[lower];
   }
 
-  const lowerValue = sortedValues[lowerIndex];
-  const upperValue = sortedValues[upperIndex];
-  const weight = index - lowerIndex;
+  const weight = index - lower;
 
-  return lowerValue + (upperValue - lowerValue) * weight;
+  return (
+    sortedValues[lower] +
+    (sortedValues[upper] - sortedValues[lower]) * weight
+  );
 }
 
 function buildSingleScenarioSummary(scenario) {
@@ -90,21 +75,18 @@ function buildSingleScenarioSummary(scenario) {
     startYear: scenario.startYear ?? "",
     endYear: scenario.endYear ?? "",
 
-    terminalWealth: getTerminalWealth(scenario),
+    terminalNominal: toFiniteNumber(scenario.terminalNominal),
 
     depleted: Boolean(scenario.depleted),
-    depletionYear:
-      typeof scenario.depletionYear === "number"
-        ? scenario.depletionYear
-        : null,
+    depletionYear: getDepletionYear(scenario),
 
     minimumWealth: getMinimumWealth(scenario)
   };
 }
 
 function buildMultiScenarioSummary(scenarios) {
-  const terminalWealths = scenarios
-    .map(getTerminalWealth)
+  const terminalValues = scenarios
+    .map((s) => toFiniteNumber(s.terminalNominal))
     .sort((a, b) => a - b);
 
   const successCount = scenarios.filter(isSuccessfulScenario).length;
@@ -115,16 +97,16 @@ function buildMultiScenarioSummary(scenarios) {
     scenarioCount: scenarios.length,
     successRate: successCount / scenarios.length,
 
-    medianTerminalWealth: percentileFromSorted(terminalWealths, 50),
-    p10TerminalWealth: percentileFromSorted(terminalWealths, 10),
-    p90TerminalWealth: percentileFromSorted(terminalWealths, 90)
+    medianTerminalWealth: percentileFromSorted(terminalValues, 50),
+    p10TerminalWealth: percentileFromSorted(terminalValues, 10),
+    p90TerminalWealth: percentileFromSorted(terminalValues, 90)
   };
 }
 
 export function aggregateScenarioResults(scenarios) {
-  const safeScenarios = Array.isArray(scenarios) ? scenarios : [];
+  const safe = Array.isArray(scenarios) ? scenarios : [];
 
-  if (safeScenarios.length === 0) {
+  if (safe.length === 0) {
     return {
       type: "multi",
       scenarioCount: 0,
@@ -135,9 +117,9 @@ export function aggregateScenarioResults(scenarios) {
     };
   }
 
-  if (safeScenarios.length === 1) {
-    return buildSingleScenarioSummary(safeScenarios[0]);
+  if (safe.length === 1) {
+    return buildSingleScenarioSummary(safe[0]);
   }
 
-  return buildMultiScenarioSummary(safeScenarios);
+  return buildMultiScenarioSummary(safe);
 }
