@@ -1,4 +1,14 @@
 export function simulateScenario({ inputs, returnsProvider }) {
+  console.log("ENGINE INPUTS", {
+    annualSpending: inputs?.annualSpending,
+    equityAllocation: inputs?.equityAllocation,
+    bondAllocation: inputs?.bondAllocation,
+    cashAllocation: inputs?.cashAllocation,
+    simulationYears: inputs?.simulationYears,
+    useGuardrails: inputs?.useGuardrails,
+    cashRunwayYears: inputs?.cashRunwayYears
+  });
+
   const initialPortfolio = toNumber(
     inputs.startingPortfolio ?? inputs.initialPortfolio ?? 0
   );
@@ -240,6 +250,12 @@ export function simulateScenario({ inputs, returnsProvider }) {
     pathReal.length > 0
       ? pathReal[pathReal.length - 1]
       : initialPortfolio;
+
+  console.log("ENGINE RESULT", {
+    depleted,
+    terminalNominal,
+    terminalReal
+  });
 
   return {
     yearlyRows,
