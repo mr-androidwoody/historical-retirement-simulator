@@ -1,9 +1,9 @@
 import { bindPlanForm } from "./ui/plan-form.js";
-import { renderResultsSummary } from "./ui/results-view.js";
+import { renderResultsDashboard, bindResultsDashboardEvents } from "./ui/results-view.js";
 import { renderScenarioTable } from "./ui/yearly-table.js";
-import { renderHistoricalChart } from "./ui/charts.js";
+import { renderInvestmentProjectionChart, renderSpendingPathChart } from "./ui/charts.js";
 
-const WORKER_URL = "./js/worker/worker.js?v=debug10";
+const WORKER_URL = "./js/worker/worker.js?v=debug11";
 
 const planFormElement = document.getElementById("planForm");
 
@@ -22,6 +22,13 @@ const heroWorstScenarioElement = document.getElementById("heroWorstScenario");
 const heroScenarioCountElement = document.getElementById("heroScenarioCount");
 
 let worker = null;
+let latestResult = null;
+
+const uiState = {
+  chartMode: "nominal",
+  guardrails: "on",
+  showYearlyTable: true
+};
 
 function escapeHtml(value) {
   return String(value)
@@ -129,7 +136,9 @@ function updateHeroMetrics(summary) {
     return;
   }
 
-  if (summary.type === "single") {
+  const isSingleScenario = summary.type === "single-scenario" || summary.type === "single";
+
+  if (isSingleScenario) {
     if (heroSuccessRateElement) {
       heroSuccessRateElement.textContent = summary.depleted ? "Depleted" : "Sustained";
     }
@@ -171,11 +180,13 @@ function showLoading() {
 
   if (resultsSummaryElement) {
     resultsSummaryElement.innerHTML = `
-      <section class="results-summary">
-        <h2 class="results-summary-title">Summary</h2>
-        <div class="card">
-          <h2>Running simulation</h2>
-          <p>Please wait…</p>
+      <section class="results-header-card">
+        <div class="results-header-top">
+          <h2 class="results-title">Results</h2>
+          <p class="results-subtitle">Preparing the simulation output.</p>
+        </div>
+        <div class="results-context-note">
+          <p>Running simulation. Please wait.</p>
         </div>
       </section>
     `;
@@ -230,6 +241,10 @@ function getTerminalNominal(scenario) {
     return toFiniteNumber(result.pathNominal[result.pathNominal.length - 1]);
   }
 
+  if (Array.isArray(result.yearlyRows) && result.yearlyRows.length > 0) {
+    return toFiniteNumber(result.yearlyRows[result.yearlyRows.length - 1]?.endPortfolio);
+  }
+
   return 0;
 }
 
@@ -277,8 +292,11 @@ function normaliseScenarios(scenarios) {
       ...result,
       ...scenario,
       scenarioId: scenario?.scenarioId ?? index + 1,
-      startYear: scenario?.startYear ?? "",
-      endYear: scenario?.endYear ?? "",
+      startYear: scenario?.startYear ?? result?.startYear ?? "",
+      endYear: scenario?.endYear ?? result?.endYear ?? "",
+      yearlyRows: Array.isArray(scenario?.yearlyRows) ? scenario.yearlyRows : result?.yearlyRows ?? [],
+      pathNominal: Array.isArray(scenario?.pathNominal) ? scenario.pathNominal : result?.pathNominal ?? [],
+      pathReal: Array.isArray(scenario?.pathReal) ? scenario.pathReal : result?.pathReal ?? [],
       depleted: getDepleted(scenario),
       terminalNominal: getTerminalNominal(scenario),
       terminalReal: getTerminalReal(scenario)
@@ -304,27 +322,83 @@ function logScenarioResults(scenarios) {
   console.groupEnd();
 }
 
-function renderResults(result) {
-  const scenarios = normaliseScenarios(result?.scenarios);
-  const summary = result?.summary || {};
-
-  updateHeroMetrics(summary);
-
-  renderResultsSummary({
-    container: resultsSummaryElement,
-    summary,
-    scenarios
+function renderCharts(scenarios) {
+  renderInvestmentProjectionChart({
+    container: resultsChartElement?.querySelector("#investmentProjectionChart"),
+    legendContainer: resultsChartElement?.querySelector("#investmentProjectionLegend"),
+    scenarios,
+    chartMode: uiState.chartMode
   });
 
-  renderHistoricalChart({
-    container: resultsChartElement,
-    scenarios
+  renderSpendingPathChart({
+    container: resultsChartElement?.querySelector("#spendingPathChart"),
+    legendContainer: resultsChartElement?.querySelector("#spendingPathLegend"),
+    scenarios,
+    chartMode: uiState.chartMode,
+    guardrails: uiState.guardrails
   });
+}
+
+function renderTable(scenarios) {
+  if (!scenarioTableElement) {
+    return;
+  }
+
+  scenarioTableElement.style.display = uiState.showYearlyTable ? "" : "none";
+
+  if (!uiState.showYearlyTable) {
+    scenarioTableElement.innerHTML = "";
+    return;
+  }
 
   renderScenarioTable({
     container: scenarioTableElement,
     scenarios
   });
+}
+
+function bindDashboardHandlers() {
+  bindResultsDashboardEvents(resultsSummaryElement, {
+    onChartModeChange(nextValue) {
+      uiState.chartMode = nextValue;
+      if (latestResult) {
+        renderResults(latestResult);
+      }
+    },
+    onGuardrailsChange(nextValue) {
+      uiState.guardrails = nextValue;
+      if (latestResult) {
+        renderResults(latestResult);
+      }
+    },
+    onToggleYearlyTable(nextValue) {
+      uiState.showYearlyTable = nextValue;
+      if (latestResult) {
+        renderResults(latestResult);
+      }
+    }
+  });
+}
+
+function renderResults(result) {
+  latestResult = result;
+
+  const scenarios = normaliseScenarios(result?.scenarios);
+  const summary = result?.summary || {};
+
+  updateHeroMetrics(summary);
+
+  renderResultsDashboard({
+    summaryContainer: resultsSummaryElement,
+    dashboardContainer: resultsChartElement,
+    summary,
+    scenarios,
+    uiState
+  });
+
+  renderCharts(scenarios);
+  renderTable(scenarios);
+  bindDashboardHandlers();
 
   logScenarioResults(scenarios);
   showScreen("results");
