@@ -63,11 +63,10 @@ function getDisplayRows(scenario, chartMode) {
 }
 
 function getScenarioYears(scenario, pointCount) {
-  const startYear = toFiniteNumber(scenario?.startYear);
-  const hasStartYear = Number.isFinite(startYear) && startYear > 0;
+  const startYear = Number(scenario?.startYear);
 
-  if (!hasStartYear) {
-    return Array.from({ length: pointCount }, (_, index) => index);
+  if (!Number.isFinite(startYear) || startYear <= 0) {
+    return Array.from({ length: pointCount }, (_, index) => index + 1);
   }
 
   return Array.from({ length: pointCount }, (_, index) => startYear + index);
@@ -109,14 +108,13 @@ function getTickValues(minValue, maxValue, targetTickCount = 5) {
     ticks.push(value);
   }
 
-  if (!ticks.length) {
-    ticks.push(minValue, maxValue);
-  }
-
-  return ticks;
+  return ticks.length ? ticks : [minValue, maxValue];
 }
 
-function buildGeometry(values, { width = 980, height = 420, minOverride = null, maxOverride = null } = {}) {
+function buildGeometry(
+  values,
+  { width = 980, height = 420, minOverride = null, maxOverride = null } = {}
+) {
   const margin = { top: 28, right: 20, bottom: 56, left: 78 };
   const innerW = width - margin.left - margin.right;
   const innerH = height - margin.top - margin.bottom;
@@ -126,7 +124,6 @@ function buildGeometry(values, { width = 980, height = 420, minOverride = null, 
 
   const minValue = minOverride != null ? minOverride : Math.min(0, computedMin);
   const maxValue = maxOverride != null ? maxOverride : Math.max(1, computedMax);
-
   const safeMax = maxValue === minValue ? minValue + 1 : maxValue;
 
   return {
@@ -159,19 +156,23 @@ function buildLinePath(values, geo) {
     .join(" ");
 }
 
-function buildAreaPath(values, geo, baseline = 0) {
+function buildAreaPath(values, geo, baselineValues = 0) {
   if (!values.length) {
     return "";
   }
+
+  const baselineArray = Array.isArray(baselineValues)
+    ? baselineValues.map(toFiniteNumber)
+    : values.map(() => toFiniteNumber(baselineValues));
 
   const top = values
     .map((value, index) => `${index === 0 ? "M" : "L"} ${geo.x(index, values.length)} ${geo.y(value)}`)
     .join(" ");
 
-  const bottom = values
-    .map((_, index) => {
-      const reverseIndex = values.length - 1 - index;
-      return `L ${geo.x(reverseIndex, values.length)} ${geo.y(baseline)}`;
+  const bottom = baselineArray
+    .map((value, reverseOffset) => {
+      const index = baselineArray.length - 1 - reverseOffset;
+      return `L ${geo.x(index, baselineArray.length)} ${geo.y(value)}`;
     })
     .join(" ");
 
@@ -203,7 +204,7 @@ function renderEmptyChart(container) {
   container.innerHTML = `<div class="results-chart-empty">No data</div>`;
 }
 
-function renderAxesAndGrid(svg, geo, years, yTicks) {
+function renderAxesAndGrid(svg, geo, years, yTicks, xAxisLabel = "") {
   yTicks.forEach((tick) => {
     const y = geo.y(tick);
 
@@ -257,11 +258,26 @@ function renderAxesAndGrid(svg, geo, years, yTicks) {
     label.textContent = String(years[index]);
     svg.appendChild(label);
   });
+
+  if (xAxisLabel) {
+    const axisTitle = createSvgElement("text");
+    axisTitle.setAttribute("x", geo.margin.left + geo.innerW / 2);
+    axisTitle.setAttribute("y", geo.height - 12);
+    axisTitle.setAttribute("text-anchor", "middle");
+    axisTitle.setAttribute("class", "results-svg-axis-label");
+    axisTitle.textContent = xAxisLabel;
+    svg.appendChild(axisTitle);
+  }
 }
 
 function renderAreas(svg, geo, areas = []) {
   areas.forEach((areaConfig) => {
-    const pathData = buildAreaPath(areaConfig.values, geo, areaConfig.baseline ?? 0);
+    const pathData = buildAreaPath(
+      areaConfig.values.map(toFiniteNumber),
+      geo,
+      areaConfig.baselineValues ?? 0
+    );
+
     if (!pathData) {
       return;
     }
@@ -275,7 +291,9 @@ function renderAreas(svg, geo, areas = []) {
 
 function renderLines(svg, geo, lines = []) {
   lines.forEach((lineConfig) => {
-    const pathData = buildLinePath(lineConfig.values, geo);
+    const values = lineConfig.values.map(toFiniteNumber);
+    const pathData = buildLinePath(values, geo);
+
     if (!pathData) {
       return;
     }
@@ -289,7 +307,11 @@ function renderLines(svg, geo, lines = []) {
 
 function renderAnnotations(svg, geo, annotations = [], pointCount = 0) {
   annotations.forEach((annotation, index) => {
-    if (!Number.isInteger(annotation.pointIndex) || annotation.pointIndex < 0 || annotation.pointIndex >= pointCount) {
+    if (
+      !Number.isInteger(annotation.pointIndex) ||
+      annotation.pointIndex < 0 ||
+      annotation.pointIndex >= pointCount
+    ) {
       return;
     }
 
@@ -322,29 +344,35 @@ function renderLayeredChart({
   areas = [],
   annotations = [],
   ariaLabel = "",
-  minOverride = null
+  minOverride = null,
+  maxOverride = null,
+  startYear = null,
+  xAxisLabel = ""
 }) {
   container.innerHTML = "";
 
-  const values = [
+  const allValues = [
     ...lines.flatMap((line) => line.values ?? []),
     ...areas.flatMap((area) => area.values ?? []),
+    ...areas.flatMap((area) =>
+      Array.isArray(area.baselineValues) ? area.baselineValues : [area.baselineValues ?? 0]
+    ),
     0
   ].map(toFiniteNumber);
 
-  if (!values.length || !lines.some((line) => Array.isArray(line.values) && line.values.length)) {
+  const pointCount = Math.max(
+    ...lines.map((line) => (Array.isArray(line.values) ? line.values.length : 0)),
+    ...areas.map((area) => (Array.isArray(area.values) ? area.values.length : 0)),
+    0
+  );
+
+  if (!allValues.length || pointCount === 0) {
     renderEmptyChart(container);
     return;
   }
 
-  const pointCount = Math.max(
-    ...lines.map((line) => line.values.length),
-    ...areas.map((area) => area.values.length),
-    0
-  );
-
-  const years = getScenarioYears({ startYear: lines[0]?.startYear }, pointCount);
-  const geo = buildGeometry(values, { minOverride });
+  const geo = buildGeometry(allValues, { minOverride, maxOverride });
+  const years = getScenarioYears({ startYear }, pointCount);
   const yTicks = getTickValues(geo.minValue, geo.maxValue, 5);
 
   const svg = createSvgElement("svg");
@@ -353,7 +381,7 @@ function renderLayeredChart({
   svg.setAttribute("role", "img");
   svg.setAttribute("aria-label", ariaLabel);
 
-  renderAxesAndGrid(svg, geo, years, yTicks);
+  renderAxesAndGrid(svg, geo, years, yTicks, xAxisLabel);
   renderAreas(svg, geo, areas);
   renderLines(svg, geo, lines);
   renderAnnotations(svg, geo, annotations, pointCount);
@@ -443,18 +471,19 @@ export function renderInvestmentProjectionChart({
   renderLayeredChart({
     container,
     ariaLabel: "Investment projection",
+    startYear: scenario?.startYear ?? null,
+    xAxisLabel: "Years in retirement",
     areas: [
       {
         values: path,
-        baseline: 0,
+        baselineValues: 0,
         className: "results-svg-area--actual"
       }
     ],
     lines: [
       {
         values: path,
-        className: "results-svg-line--primary",
-        startYear: scenario?.startYear
+        className: "results-svg-line--primary"
       }
     ],
     annotations,
@@ -505,67 +534,75 @@ export function renderSpendingPathChart({
   const rows = getDisplayRows(scenario, chartMode);
 
   const planned = rows.map((row) => toFiniteNumber(row?.targetSpending));
-  const actual = rows.map((row) => {
-    if (guardrails === "on") {
-      return toFiniteNumber(row?.actualSpending);
-    }
-    return toFiniteNumber(row?.targetSpending);
-  });
+  const actual = rows.map((row) =>
+    guardrails === "on"
+      ? toFiniteNumber(row?.actualSpending)
+      : toFiniteNumber(row?.targetSpending)
+  );
 
   const pension = rows.map((row) => toFiniteNumber(row?.statePension));
   const otherIncome = rows.map((row) => toFiniteNumber(row?.otherIncome));
+  const incomeBaseTop = pension;
+  const totalIncomeTop = pension.map((value, index) => value + otherIncome[index]);
+
   const withdrawals = rows.map((row) => toFiniteNumber(row?.portfolioWithdrawal));
   const shortfall = rows.map((row) => toFiniteNumber(row?.shortfall));
+
+  const chartMax = Math.max(
+    ...planned,
+    ...actual,
+    ...totalIncomeTop,
+    ...withdrawals,
+    ...shortfall,
+    1
+  );
 
   renderLayeredChart({
     container,
     ariaLabel: "Spending path",
+    startYear: scenario?.startYear ?? null,
+    xAxisLabel: "Years in retirement",
     areas: [
       {
-        values: actual,
-        baseline: 0,
-        className: "results-svg-area--actual"
+        values: incomeBaseTop,
+        baselineValues: 0,
+        className: "results-svg-area--pension"
       },
       {
-        values: pension,
-        baseline: 0,
-        className: "results-svg-area--pension"
+        values: totalIncomeTop,
+        baselineValues: incomeBaseTop,
+        className: "results-svg-area--actual"
       }
     ],
     lines: [
       {
         values: planned,
-        className: "results-svg-line--planned",
-        startYear: scenario?.startYear
+        className: "results-svg-line--planned"
       },
       {
         values: actual,
-        className: "results-svg-line--actual",
-        startYear: scenario?.startYear
+        className: "results-svg-line--actual"
       },
       {
         values: pension,
-        className: "results-svg-line--pension",
-        startYear: scenario?.startYear
+        className: "results-svg-line--pension"
       },
       {
-        values: otherIncome,
-        className: "results-svg-line--income",
-        startYear: scenario?.startYear
+        values: totalIncomeTop,
+        className: "results-svg-line--income"
       },
       {
         values: withdrawals,
-        className: "results-svg-line--withdrawal",
-        startYear: scenario?.startYear
+        className: "results-svg-line--withdrawal"
       },
       {
         values: shortfall,
-        className: "results-svg-line--shortfall",
-        startYear: scenario?.startYear
+        className: "results-svg-line--shortfall"
       }
     ],
-    annotations: getPensionStartAnnotations(rows),
-    minOverride: 0
+    annotations: [],
+    minOverride: 0,
+    maxOverride: chartMax * 1.08
   });
 
   if (legendContainer) {
