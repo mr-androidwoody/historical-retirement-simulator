@@ -26,6 +26,7 @@ function formatYearRange(startYear, endYear) {
   if (!startYear || !endYear) {
     return "—";
   }
+
   return `${startYear} → ${endYear}`;
 }
 
@@ -60,9 +61,18 @@ function createMetricCard(label, value) {
 function renderMultiScenario(grid, summary) {
   grid.append(
     createMetricCard("Success rate", formatPercentage(summary.successRate)),
-    createMetricCard("Median terminal wealth", formatCurrency(summary.medianTerminalWealth)),
-    createMetricCard("10th percentile", formatCurrency(summary.p10TerminalWealth)),
-    createMetricCard("90th percentile", formatCurrency(summary.p90TerminalWealth))
+    createMetricCard(
+      "Median terminal wealth",
+      formatCurrency(summary.medianTerminalWealth)
+    ),
+    createMetricCard(
+      "10th percentile",
+      formatCurrency(summary.p10TerminalWealth)
+    ),
+    createMetricCard(
+      "90th percentile",
+      formatCurrency(summary.p90TerminalWealth)
+    )
   );
 }
 
@@ -74,7 +84,7 @@ function renderSingleScenario(grid, summary) {
     ),
     createMetricCard(
       "Outcome",
-      formatCurrency(summary.terminalWealth)
+      formatCurrency(summary.terminalNominal)
     ),
     createMetricCard(
       "Sustainability",

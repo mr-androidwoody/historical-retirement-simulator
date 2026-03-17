@@ -57,7 +57,7 @@ function createCell(tagName, text, className = "") {
 }
 
 /* ============================
-   MULTI-SCENARIO TABLE (existing)
+   MULTI-SCENARIO TABLE
    ============================ */
 
 function renderMultiScenarioTable(container, scenarios) {
@@ -116,7 +116,7 @@ function renderMultiScenarioTable(container, scenarios) {
 }
 
 /* ============================
-   SINGLE-SCENARIO YEAR TABLE (new)
+   SINGLE-SCENARIO YEAR TABLE
    ============================ */
 
 function renderSingleScenarioTable(container, scenario) {
@@ -144,8 +144,16 @@ function renderSingleScenarioTable(container, scenario) {
 
   headRow.append(
     createCell("th", "Year"),
-    createCell("th", "Portfolio (real)"),
-    createCell("th", "Portfolio (nominal)"),
+    createCell("th", "Start"),
+    createCell("th", "Target"),
+    createCell("th", "Actual"),
+    createCell("th", "Cut"),
+    createCell("th", "Shortfall"),
+    createCell("th", "State pension"),
+    createCell("th", "Other income"),
+    createCell("th", "Windfall"),
+    createCell("th", "Withdrawal"),
+    createCell("th", "End"),
     createCell("th", "Depleted")
   );
 
@@ -158,8 +166,16 @@ function renderSingleScenarioTable(container, scenario) {
 
     tr.append(
       createCell("td", String(row.year ?? "")),
-      createCell("td", formatCurrency(row.portfolioReal), "numeric"),
-      createCell("td", formatCurrency(row.portfolioNominal), "numeric"),
+      createCell("td", formatCurrency(row.startPortfolio), "numeric"),
+      createCell("td", formatCurrency(row.targetSpending), "numeric"),
+      createCell("td", formatCurrency(row.actualSpending), "numeric"),
+      createCell("td", formatCurrency(row.cut), "numeric"),
+      createCell("td", formatCurrency(row.shortfall), "numeric"),
+      createCell("td", formatCurrency(row.statePension), "numeric"),
+      createCell("td", formatCurrency(row.otherIncome), "numeric"),
+      createCell("td", formatCurrency(row.windfall), "numeric"),
+      createCell("td", formatCurrency(row.portfolioWithdrawal), "numeric"),
+      createCell("td", formatCurrency(row.endPortfolio), "numeric"),
       createCell(
         "td",
         formatDepleted(row.depleted),
