@@ -386,6 +386,20 @@ function renderResults(result) {
   const scenarios = normaliseScenarios(result?.scenarios);
   const summary = result?.summary || {};
 
+  window.__debugScenarios = scenarios;
+  window.__debugSummary = summary;
+  window.__debugLatestResult = latestResult;
+
+  console.group("Debug data");
+  console.log("Debug summary", window.__debugSummary);
+  console.log("Debug scenario count", window.__debugScenarios.length);
+  console.log("Debug first scenario", window.__debugScenarios?.[0]);
+  console.log(
+    "Debug first 10 yearly rows",
+    window.__debugScenarios?.[0]?.yearlyRows?.slice(0, 10)
+  );
+  console.groupEnd();
+
   updateHeroMetrics(summary);
 
   renderResultsDashboard({
@@ -408,6 +422,13 @@ function runSimulation(inputs) {
   if (!worker) {
     createWorker();
   }
+
+  window.__debugSubmittedInputs = inputs;
+
+  console.group("Simulation submission");
+  console.log("Submitted inputs", window.__debugSubmittedInputs);
+  console.log("Mode", inputs?.mode || "historical");
+  console.groupEnd();
 
   showLoading();
 
