@@ -3,7 +3,7 @@ import { renderResultsDashboard, bindResultsDashboardEvents } from "./ui/results
 import { renderScenarioTable } from "./ui/yearly-table.js";
 import { renderInvestmentProjectionChart, renderSpendingPathChart } from "./ui/charts.js";
 
-const WORKER_URL = "./js/worker/worker.js?v=debug15";
+const WORKER_URL = "./js/worker/worker.js?v=debug16";
 
 const planFormElement = document.getElementById("planForm");
 
