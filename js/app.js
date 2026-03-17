@@ -3,7 +3,7 @@ import { renderResultsDashboard, bindResultsDashboardEvents } from "./ui/results
 import { renderScenarioTable } from "./ui/yearly-table.js";
 import { renderInvestmentProjectionChart, renderSpendingPathChart } from "./ui/charts.js";
 
-const WORKER_URL = "./js/worker/worker.js?v=debug13";
+const WORKER_URL = "./js/worker/worker.js?v=debug14";
 
 const planFormElement = document.getElementById("planForm");
 
@@ -394,22 +394,10 @@ function renderResults(result) {
   console.log("Debug summary", window.__debugSummary);
   console.log("Debug scenario count", window.__debugScenarios.length);
   console.log("Debug first scenario", window.__debugScenarios?.[0]);
-
-  console.table(
-    (window.__debugScenarios?.[0]?.yearlyRows?.slice(0, 10) || []).map((row) => ({
-      year: row.year,
-      startPortfolio: row.startPortfolio,
-      targetSpending: row.targetSpending,
-      actualSpending: row.actualSpending,
-      portfolioWithdrawal: row.portfolioWithdrawal,
-      portfolioReturn: row.portfolioReturn,
-      inflation: row.inflation,
-      inflationApplied: row.inflationApplied,
-      endPortfolio: row.endPortfolio,
-      depleted: row.depleted
-    }))
+  console.log(
+    "Debug first 10 yearly rows",
+    window.__debugScenarios?.[0]?.yearlyRows?.slice(0, 10)
   );
-
   console.groupEnd();
 
   updateHeroMetrics(summary);
