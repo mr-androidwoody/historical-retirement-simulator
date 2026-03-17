@@ -88,6 +88,25 @@ export function simulateScenario({ inputs, returnsProvider }) {
 
     const targetSpending = currentPlannedSpending;
 
+    // DEBUG — first 3 years only
+    if (year < 3) {
+      console.log("ENGINE VERSION: GK_STRICT_V1");
+      console.log("GK INPUT CHECK", {
+        year,
+        guardrailsEnabled,
+        guardrailFloor,
+        guardrailCeiling,
+        guardrailCut,
+        guardrailRaise,
+        spendingBasis,
+        annualSpending,
+        currentPlannedSpending,
+        targetSpending,
+        startPortfolio,
+        initialPortfolio
+      });
+    }
+
     const { actualSpending, cut, raise, decision } = applyGuardrailsGK({
       enabled: guardrailsEnabled,
       targetSpending,
@@ -100,7 +119,18 @@ export function simulateScenario({ inputs, returnsProvider }) {
       raisePercent: guardrailRaise
     });
 
-    // Persist the actual chosen spending as next year's base.
+    if (year < 3) {
+      console.log("GK RESULT CHECK", {
+        year,
+        targetSpending,
+        actualSpending,
+        cut,
+        raise,
+        decision
+      });
+    }
+
+    // Persist the chosen spending as next year's base.
     currentPlannedSpending = actualSpending;
 
     const totalIncome = statePension + otherIncome + windfall;
@@ -222,14 +252,11 @@ function applyGuardrailsGK({
   let raise = 0;
   let decision = "none";
 
-  // Capital preservation rule
   if (currentWithdrawalRate > upperGuardrailRate) {
     actualSpending = targetSpending * (1 - cutPercent);
     cut = Math.max(0, targetSpending - actualSpending);
     decision = "cut";
-  }
-  // Prosperity rule
-  else if (currentWithdrawalRate < lowerGuardrailRate) {
+  } else if (currentWithdrawalRate < lowerGuardrailRate) {
     actualSpending = targetSpending * (1 + raisePercent);
     raise = Math.max(0, actualSpending - targetSpending);
     decision = "raise";
