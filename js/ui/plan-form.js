@@ -1,15 +1,53 @@
-const HISTORICAL_STRESS_YEARS = [
-  { value: 1929, label: "1929 — Great Depression" },
-  { value: 1966, label: "1966 — Inflation shock" },
-  { value: 1973, label: "1973 — Oil crisis" },
-  { value: 2000, label: "2000 — Dot-com crash" },
-  { value: 2008, label: "2008 — Financial crisis" }
+const HISTORICAL_SCENARIO_GROUPS = [
+  {
+    label: "Stress scenarios – crashes",
+    options: [
+      { value: 1929, label: "1929 – Severe crash (Great Depression)" },
+      { value: 2008, label: "2008 – Severe crash (GFC)" },
+      { value: 2000, label: "2000 – Crash + stagnation (Dot-com)" },
+      { value: 2007, label: "2007 – Pre-crisis peak (GFC timing)" }
+    ]
+  },
+  {
+    label: "Stress scenarios – inflation",
+    options: [
+      { value: 1966, label: "1966 – Inflation shock" },
+      { value: 1973, label: "1973 – Stagflation shock" },
+      { value: 1979, label: "1979 – High inflation peak" }
+    ]
+  },
+  {
+    label: "Stress scenarios – structural / war",
+    options: [
+      { value: 1914, label: "1914 – War disruption (WWI)" },
+      { value: 1939, label: "1939 – War disruption (WWII)" }
+    ]
+  },
+  {
+    label: "Weak regimes – stagnation",
+    options: [
+      { value: 1906, label: "1906 – Early instability" },
+      { value: 1965, label: "1965 – Pre-inflation peak" },
+      { value: 2001, label: "2001 – Post dot-com stagnation" }
+    ]
+  },
+  {
+    label: "Favourable scenarios",
+    options: [
+      { value: 1982, label: "1982 – Strong bull market start" },
+      { value: 1991, label: "1991 – Long expansion" },
+      { value: 2010, label: "2010 – Recovery bull market" }
+    ]
+  }
 ];
+
+const HISTORICAL_SCENARIO_OPTIONS = HISTORICAL_SCENARIO_GROUPS.flatMap(
+  (group) => group.options
+);
 
 const DEFAULTS = {
   mode: "historical",
-  historicalScope: "all",
-  selectedHistoricalStartYear: 2008,
+  selectedHistoricalStartYear: 1966,
 
   startingPortfolio: 1000000,
   annualSpending: 40000,
@@ -139,7 +177,9 @@ function escapeAttribute(value) {
 
 function getSelectedHistoricalStartYear(values = DEFAULTS) {
   const candidate = Number(values.selectedHistoricalStartYear);
-  const isValid = HISTORICAL_STRESS_YEARS.some((year) => year.value === candidate);
+  const isValid = HISTORICAL_SCENARIO_OPTIONS.some(
+    (option) => option.value === candidate
+  );
 
   if (isValid) {
     return candidate;
@@ -149,9 +189,19 @@ function getSelectedHistoricalStartYear(values = DEFAULTS) {
 }
 
 function renderHistoricalStartYearOptions(selectedValue) {
-  return HISTORICAL_STRESS_YEARS.map(
-    ({ value, label }) =>
-      `<option value="${value}"${value === selectedValue ? " selected" : ""}>${label}</option>`
+  return HISTORICAL_SCENARIO_GROUPS.map(
+    (group) => `
+      <optgroup label="${escapeAttribute(group.label)}">
+        ${group.options
+          .map(
+            ({ value, label }) =>
+              `<option value="${value}"${
+                value === selectedValue ? " selected" : ""
+              }>${label}</option>`
+          )
+          .join("")}
+      </optgroup>
+    `
   ).join("");
 }
 
@@ -168,7 +218,9 @@ function renderPersonCard(person, index) {
           showIncludeToggle
             ? `
               <label class="inline-checkbox person-include-toggle">
-                <input id="includePerson2" type="checkbox"${person.include ? " checked" : ""} />
+                <input id="includePerson2" type="checkbox"${
+                  person.include ? " checked" : ""
+                } />
                 <span>Include person ${personNumber}</span>
               </label>
             `
@@ -261,9 +313,10 @@ function renderPersonCard(person, index) {
 }
 
 function renderPlanFormMarkup(values = DEFAULTS) {
-  const people = Array.isArray(values.people) && values.people.length >= 2
-    ? values.people
-    : DEFAULTS.people;
+  const people =
+    Array.isArray(values.people) && values.people.length >= 2
+      ? values.people
+      : DEFAULTS.people;
 
   const selectedHistoricalStartYear = getSelectedHistoricalStartYear(values);
 
@@ -287,42 +340,20 @@ function renderPlanFormMarkup(values = DEFAULTS) {
             <label class="field">
               <span class="field-label">Simulation mode</span>
               <select id="simulationMode">
-                <option value="historical"${values.mode === "historical" ? " selected" : ""}>Historical</option>
-                <option value="montecarlo"${values.mode === "montecarlo" ? " selected" : ""}>Monte Carlo</option>
-                <option value="deterministic"${values.mode === "deterministic" ? " selected" : ""}>Deterministic</option>
+                <option value="historical"${
+                  values.mode === "historical" ? " selected" : ""
+                }>Historical</option>
+                <option value="montecarlo"${
+                  values.mode === "montecarlo" ? " selected" : ""
+                }>Monte Carlo</option>
+                <option value="deterministic"${
+                  values.mode === "deterministic" ? " selected" : ""
+                }>Deterministic</option>
               </select>
             </label>
 
-            <div class="field" data-historical-controls>
-              <span class="field-label">Historical scenario scope</span>
-
-              <div class="radio-group historical-scope-radio-group" role="radiogroup" aria-label="Historical scenario scope">
-                <label class="inline-checkbox">
-                  <input
-                    id="historicalScopeAll"
-                    name="historicalScope"
-                    type="radio"
-                    value="all"
-                    ${values.historicalScope !== "single" ? "checked" : ""}
-                  />
-                  <span>All historical scenarios</span>
-                </label>
-
-                <label class="inline-checkbox">
-                  <input
-                    id="historicalScopeSingle"
-                    name="historicalScope"
-                    type="radio"
-                    value="single"
-                    ${values.historicalScope === "single" ? "checked" : ""}
-                  />
-                  <span>Specific start year</span>
-                </label>
-              </div>
-            </div>
-
             <label class="field" data-historical-start-year-field>
-              <span class="field-label">Historical start year</span>
+              <span class="field-label">Historical scenario</span>
               <select id="selectedHistoricalStartYear">
                 ${renderHistoricalStartYearOptions(selectedHistoricalStartYear)}
               </select>
@@ -400,16 +431,24 @@ function renderPlanFormMarkup(values = DEFAULTS) {
             <label class="field">
               <span class="field-label">Spending basis</span>
               <select id="spendingBasis">
-                <option value="real"${values.spendingBasis === "real" ? " selected" : ""}>Real</option>
-                <option value="nominal"${values.spendingBasis === "nominal" ? " selected" : ""}>Nominal</option>
+                <option value="real"${
+                  values.spendingBasis === "real" ? " selected" : ""
+                }>Real</option>
+                <option value="nominal"${
+                  values.spendingBasis === "nominal" ? " selected" : ""
+                }>Nominal</option>
               </select>
             </label>
 
             <label class="field">
               <span class="field-label">Display values</span>
               <select id="displayValues">
-                <option value="real"${values.displayValues === "real" ? " selected" : ""}>Real</option>
-                <option value="nominal"${values.displayValues === "nominal" ? " selected" : ""}>Nominal</option>
+                <option value="real"${
+                  values.displayValues === "real" ? " selected" : ""
+                }>Real</option>
+                <option value="nominal"${
+                  values.displayValues === "nominal" ? " selected" : ""
+                }>Nominal</option>
               </select>
             </label>
 
@@ -422,7 +461,9 @@ function renderPlanFormMarkup(values = DEFAULTS) {
             <h4 class="plan-form-section-title">Allocation and fees</h4>
 
             <label class="inline-checkbox">
-              <input id="rebalance" type="checkbox"${values.rebalance ? " checked" : ""} />
+              <input id="rebalance" type="checkbox"${
+                values.rebalance ? " checked" : ""
+              } />
               <span>Rebalance annually</span>
             </label>
           </div>
@@ -475,7 +516,9 @@ function renderPlanFormMarkup(values = DEFAULTS) {
             <h4 class="plan-form-section-title">Guardrails</h4>
 
             <label class="inline-checkbox">
-              <input id="useGuardrails" type="checkbox"${values.useGuardrails ? " checked" : ""} />
+              <input id="useGuardrails" type="checkbox"${
+                values.useGuardrails ? " checked" : ""
+              } />
               <span>Use guardrails</span>
             </label>
           </div>
@@ -662,32 +705,84 @@ function buildPeopleInputs(actualForm) {
     {
       include: true,
       name: getTextValue(actualForm, "#person1Name", DEFAULTS.people[0].name),
-      currentAge: getNumberValue(actualForm, "#person1CurrentAge", DEFAULTS.people[0].currentAge),
-      statePensionAge: getNumberValue(actualForm, "#person1StatePensionAge", DEFAULTS.people[0].statePensionAge),
+      currentAge: getNumberValue(
+        actualForm,
+        "#person1CurrentAge",
+        DEFAULTS.people[0].currentAge
+      ),
+      statePensionAge: getNumberValue(
+        actualForm,
+        "#person1StatePensionAge",
+        DEFAULTS.people[0].statePensionAge
+      ),
       receivesFullStatePension: getCheckboxValue(
         actualForm,
         "#person1ReceivesStatePension",
         DEFAULTS.people[0].receivesFullStatePension
       ),
-      otherIncome: getNumberValue(actualForm, "#person1OtherIncome", DEFAULTS.people[0].otherIncome),
-      incomeYears: getNumberValue(actualForm, "#person1IncomeYears", DEFAULTS.people[0].incomeYears),
-      windfallAmount: getNumberValue(actualForm, "#person1WindfallAmount", DEFAULTS.people[0].windfallAmount),
-      windfallYear: getNumberValue(actualForm, "#person1WindfallYear", DEFAULTS.people[0].windfallYear)
+      otherIncome: getNumberValue(
+        actualForm,
+        "#person1OtherIncome",
+        DEFAULTS.people[0].otherIncome
+      ),
+      incomeYears: getNumberValue(
+        actualForm,
+        "#person1IncomeYears",
+        DEFAULTS.people[0].incomeYears
+      ),
+      windfallAmount: getNumberValue(
+        actualForm,
+        "#person1WindfallAmount",
+        DEFAULTS.people[0].windfallAmount
+      ),
+      windfallYear: getNumberValue(
+        actualForm,
+        "#person1WindfallYear",
+        DEFAULTS.people[0].windfallYear
+      )
     },
     {
-      include: getCheckboxValue(actualForm, "#includePerson2", DEFAULTS.people[1].include),
+      include: getCheckboxValue(
+        actualForm,
+        "#includePerson2",
+        DEFAULTS.people[1].include
+      ),
       name: getTextValue(actualForm, "#person2Name", DEFAULTS.people[1].name),
-      currentAge: getNumberValue(actualForm, "#person2CurrentAge", DEFAULTS.people[1].currentAge),
-      statePensionAge: getNumberValue(actualForm, "#person2StatePensionAge", DEFAULTS.people[1].statePensionAge),
+      currentAge: getNumberValue(
+        actualForm,
+        "#person2CurrentAge",
+        DEFAULTS.people[1].currentAge
+      ),
+      statePensionAge: getNumberValue(
+        actualForm,
+        "#person2StatePensionAge",
+        DEFAULTS.people[1].statePensionAge
+      ),
       receivesFullStatePension: getCheckboxValue(
         actualForm,
         "#person2ReceivesStatePension",
         DEFAULTS.people[1].receivesFullStatePension
       ),
-      otherIncome: getNumberValue(actualForm, "#person2OtherIncome", DEFAULTS.people[1].otherIncome),
-      incomeYears: getNumberValue(actualForm, "#person2IncomeYears", DEFAULTS.people[1].incomeYears),
-      windfallAmount: getNumberValue(actualForm, "#person2WindfallAmount", DEFAULTS.people[1].windfallAmount),
-      windfallYear: getNumberValue(actualForm, "#person2WindfallYear", DEFAULTS.people[1].windfallYear)
+      otherIncome: getNumberValue(
+        actualForm,
+        "#person2OtherIncome",
+        DEFAULTS.people[1].otherIncome
+      ),
+      incomeYears: getNumberValue(
+        actualForm,
+        "#person2IncomeYears",
+        DEFAULTS.people[1].incomeYears
+      ),
+      windfallAmount: getNumberValue(
+        actualForm,
+        "#person2WindfallAmount",
+        DEFAULTS.people[1].windfallAmount
+      ),
+      windfallYear: getNumberValue(
+        actualForm,
+        "#person2WindfallYear",
+        DEFAULTS.people[1].windfallYear
+      )
     }
   ];
 }
@@ -725,8 +820,6 @@ function bindPerson2Toggle(actualForm) {
 
 function bindHistoricalControls(actualForm) {
   const modeField = actualForm.querySelector("#simulationMode");
-  const scopeFields = Array.from(actualForm.querySelectorAll('input[name="historicalScope"]'));
-  const historicalControls = Array.from(actualForm.querySelectorAll("[data-historical-controls]"));
   const startYearField = actualForm.querySelector("[data-historical-start-year-field]");
 
   if (!modeField) {
@@ -735,54 +828,53 @@ function bindHistoricalControls(actualForm) {
 
   const applyState = () => {
     const isHistoricalMode = modeField.value === "historical";
-    const historicalScope =
-      actualForm.querySelector('input[name="historicalScope"]:checked')?.value || DEFAULTS.historicalScope;
-    const isSingleStartYear = isHistoricalMode && historicalScope === "single";
-
-    historicalControls.forEach((element) => {
-      element.hidden = !isHistoricalMode;
-    });
 
     if (startYearField) {
-      startYearField.hidden = !isSingleStartYear;
+      startYearField.hidden = !isHistoricalMode;
     }
   };
 
   modeField.addEventListener("change", applyState);
-  scopeFields.forEach((field) => field.addEventListener("change", applyState));
   applyState();
 
   return () => {
     modeField.removeEventListener("change", applyState);
-    scopeFields.forEach((field) => field.removeEventListener("change", applyState));
   };
 }
 
 export function getPlanInputs(form = document.querySelector("#planForm form, #planForm")) {
   const actualForm = ensureFormElement(form);
 
-const modeField = actualForm.querySelector("#simulationMode");
-const mode = modeField ? modeField.value : DEFAULTS.mode;const selectedScopeField = actualForm.querySelector('input[name="historicalScope"]:checked');
+  const modeField = actualForm.querySelector("#simulationMode");
+  const mode = modeField ? modeField.value : DEFAULTS.mode;
 
-const historicalScope = selectedScopeField
-  ? selectedScopeField.value
-  : DEFAULTS.historicalScope;
+  const selectedHistoricalStartYear = getNumberValue(
+    actualForm,
+    "#selectedHistoricalStartYear",
+    DEFAULTS.selectedHistoricalStartYear
+  );
 
   const inputs = {
     mode,
-    historicalScope,
+    historicalScope: "single",
     selectedHistoricalStartYear:
-      historicalScope === "single"
-        ? getNumberValue(
-            actualForm,
-            "#selectedHistoricalStartYear",
-            DEFAULTS.selectedHistoricalStartYear
-          )
-        : null,
+      mode === "historical" ? selectedHistoricalStartYear : null,
 
-    startingPortfolio: getNumberValue(actualForm, "#startingPortfolio", DEFAULTS.startingPortfolio),
-    annualSpending: getNumberValue(actualForm, "#annualSpending", DEFAULTS.annualSpending),
-    simulationYears: getNumberValue(actualForm, "#simulationYears", DEFAULTS.simulationYears),
+    startingPortfolio: getNumberValue(
+      actualForm,
+      "#startingPortfolio",
+      DEFAULTS.startingPortfolio
+    ),
+    annualSpending: getNumberValue(
+      actualForm,
+      "#annualSpending",
+      DEFAULTS.annualSpending
+    ),
+    simulationYears: getNumberValue(
+      actualForm,
+      "#simulationYears",
+      DEFAULTS.simulationYears
+    ),
 
     equityAllocation: normaliseAllocation(
       getNumberValue(actualForm, "#equityAllocation", DEFAULTS.equityAllocation)
@@ -794,29 +886,71 @@ const historicalScope = selectedScopeField
       getNumberValue(actualForm, "#cashAllocation", DEFAULTS.cashAllocation)
     ),
 
-    annualFees: normaliseRate(getNumberValue(actualForm, "#annualFees", DEFAULTS.annualFees)),
+    annualFees: normaliseRate(
+      getNumberValue(actualForm, "#annualFees", DEFAULTS.annualFees)
+    ),
     rebalance: getCheckboxValue(actualForm, "#rebalance", DEFAULTS.rebalance),
 
-    useGuardrails: getCheckboxValue(actualForm, "#useGuardrails", DEFAULTS.useGuardrails),
-    guardrailFloor: normaliseRate(getNumberValue(actualForm, "#guardrailFloor", DEFAULTS.guardrailFloor)),
-    guardrailCeiling: normaliseRate(getNumberValue(actualForm, "#guardrailCeiling", DEFAULTS.guardrailCeiling)),
-    guardrailCut: normaliseRate(getNumberValue(actualForm, "#guardrailCut", DEFAULTS.guardrailCut)),
-    guardrailRaise: normaliseRate(getNumberValue(actualForm, "#guardrailRaise", DEFAULTS.guardrailRaise)),
+    useGuardrails: getCheckboxValue(
+      actualForm,
+      "#useGuardrails",
+      DEFAULTS.useGuardrails
+    ),
+    guardrailFloor: normaliseRate(
+      getNumberValue(actualForm, "#guardrailFloor", DEFAULTS.guardrailFloor)
+    ),
+    guardrailCeiling: normaliseRate(
+      getNumberValue(actualForm, "#guardrailCeiling", DEFAULTS.guardrailCeiling)
+    ),
+    guardrailCut: normaliseRate(
+      getNumberValue(actualForm, "#guardrailCut", DEFAULTS.guardrailCut)
+    ),
+    guardrailRaise: normaliseRate(
+      getNumberValue(actualForm, "#guardrailRaise", DEFAULTS.guardrailRaise)
+    ),
 
-    statePensionToday: getNumberValue(actualForm, "#statePensionToday", DEFAULTS.statePensionToday),
-    statePensionStartAge: getNumberValue(actualForm, "#statePensionStartAge", DEFAULTS.statePensionStartAge),
-    includeStatePension: getCheckboxValue(actualForm, "#includeStatePension", DEFAULTS.includeStatePension),
+    statePensionToday: getNumberValue(
+      actualForm,
+      "#statePensionToday",
+      DEFAULTS.statePensionToday
+    ),
+    statePensionStartAge: getNumberValue(
+      actualForm,
+      "#statePensionStartAge",
+      DEFAULTS.statePensionStartAge
+    ),
+    includeStatePension: getCheckboxValue(
+      actualForm,
+      "#includeStatePension",
+      DEFAULTS.includeStatePension
+    ),
 
-    spendingBasis: getTextValue(actualForm, "#spendingBasis", DEFAULTS.spendingBasis),
-    displayValues: getTextValue(actualForm, "#displayValues", DEFAULTS.displayValues),
+    spendingBasis: getTextValue(
+      actualForm,
+      "#spendingBasis",
+      DEFAULTS.spendingBasis
+    ),
+    displayValues: getTextValue(
+      actualForm,
+      "#displayValues",
+      DEFAULTS.displayValues
+    ),
 
-    monteCarloRuns: getNumberValue(actualForm, "#monteCarloRuns", DEFAULTS.monteCarloRuns),
+    monteCarloRuns: getNumberValue(
+      actualForm,
+      "#monteCarloRuns",
+      DEFAULTS.monteCarloRuns
+    ),
 
     equityReturnMean: normaliseRate(
       getNumberValue(actualForm, "#equityReturnMean", DEFAULTS.equityReturnMean)
     ),
     equityReturnStdDev: normaliseRate(
-      getNumberValue(actualForm, "#equityReturnStdDev", DEFAULTS.equityReturnStdDev)
+      getNumberValue(
+        actualForm,
+        "#equityReturnStdDev",
+        DEFAULTS.equityReturnStdDev
+      )
     ),
     bondReturnMean: normaliseRate(
       getNumberValue(actualForm, "#bondReturnMean", DEFAULTS.bondReturnMean)
@@ -831,9 +965,15 @@ const historicalScope = selectedScopeField
       getNumberValue(actualForm, "#inflationStdDev", DEFAULTS.inflationStdDev)
     ),
 
-    equityReturn: normaliseRate(getNumberValue(actualForm, "#equityReturn", DEFAULTS.equityReturn)),
-    bondReturn: normaliseRate(getNumberValue(actualForm, "#bondReturn", DEFAULTS.bondReturn)),
-    inflation: normaliseRate(getNumberValue(actualForm, "#inflation", DEFAULTS.inflation)),
+    equityReturn: normaliseRate(
+      getNumberValue(actualForm, "#equityReturn", DEFAULTS.equityReturn)
+    ),
+    bondReturn: normaliseRate(
+      getNumberValue(actualForm, "#bondReturn", DEFAULTS.bondReturn)
+    ),
+    inflation: normaliseRate(
+      getNumberValue(actualForm, "#inflation", DEFAULTS.inflation)
+    ),
 
     people: buildPeopleInputs(actualForm)
   };
