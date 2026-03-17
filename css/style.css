@@ -1146,6 +1146,14 @@ main,
   background: #ffe9e9;
 }
 
+.scenario-table tbody tr.is-strong td {
+  background: #f2f7ff;
+}
+
+.scenario-table tbody tr.is-strong:hover td {
+  background: #e6f0ff;
+}
+
 /* ============================================================
    10. Generated plan form
    The JS renders the whole form into #planForm
