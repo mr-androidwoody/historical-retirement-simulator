@@ -92,10 +92,7 @@ function getTickValues(minValue, maxValue, targetTickCount = 5) {
   }
 
   if (minValue === maxValue) {
-    if (minValue === 0) {
-      return [0, 1];
-    }
-    return [0, minValue];
+    return minValue === 0 ? [0, 1] : [0, minValue];
   }
 
   const range = maxValue - minValue;
@@ -473,13 +470,7 @@ export function renderInvestmentProjectionChart({
     ariaLabel: "Investment projection",
     startYear: scenario?.startYear ?? null,
     xAxisLabel: "Years in retirement",
-    areas: [
-      {
-        values: path,
-        baselineValues: 0,
-        className: "results-svg-area--actual"
-      }
-    ],
+    areas: [],
     lines: [
       {
         values: path,
@@ -540,10 +531,9 @@ export function renderSpendingPathChart({
       : toFiniteNumber(row?.targetSpending)
   );
 
-  const pension = rows.map((row) => toFiniteNumber(row?.statePension));
   const otherIncome = rows.map((row) => toFiniteNumber(row?.otherIncome));
-  const incomeBaseTop = pension;
-  const totalIncomeTop = pension.map((value, index) => value + otherIncome[index]);
+  const pension = rows.map((row) => toFiniteNumber(row?.statePension));
+  const pensionTop = otherIncome.map((value, index) => value + pension[index]);
 
   const withdrawals = rows.map((row) => toFiniteNumber(row?.portfolioWithdrawal));
   const shortfall = rows.map((row) => toFiniteNumber(row?.shortfall));
@@ -551,7 +541,7 @@ export function renderSpendingPathChart({
   const chartMax = Math.max(
     ...planned,
     ...actual,
-    ...totalIncomeTop,
+    ...pensionTop,
     ...withdrawals,
     ...shortfall,
     1
@@ -564,14 +554,14 @@ export function renderSpendingPathChart({
     xAxisLabel: "Years in retirement",
     areas: [
       {
-        values: incomeBaseTop,
+        values: otherIncome,
         baselineValues: 0,
-        className: "results-svg-area--pension"
+        className: "results-svg-area--income"
       },
       {
-        values: totalIncomeTop,
-        baselineValues: incomeBaseTop,
-        className: "results-svg-area--actual"
+        values: pensionTop,
+        baselineValues: otherIncome,
+        className: "results-svg-area--pension"
       }
     ],
     lines: [
@@ -582,14 +572,6 @@ export function renderSpendingPathChart({
       {
         values: actual,
         className: "results-svg-line--actual"
-      },
-      {
-        values: pension,
-        className: "results-svg-line--pension"
-      },
-      {
-        values: totalIncomeTop,
-        className: "results-svg-line--income"
       },
       {
         values: withdrawals,
@@ -609,19 +591,19 @@ export function renderSpendingPathChart({
     legendContainer.innerHTML = buildLegendMarkup([
       {
         className: "results-inline-legend-line--planned",
-        label: "Planned spending"
+        label: "Planned household spending"
       },
       {
         className: "results-inline-legend-line--actual",
-        label: "Actual spending"
-      },
-      {
-        className: "results-inline-legend-line--pension",
-        label: "State pension"
+        label: "Actual spending after guardrails"
       },
       {
         className: "results-inline-legend-line--income",
         label: "Other income"
+      },
+      {
+        className: "results-inline-legend-line--pension",
+        label: "State pension income"
       },
       {
         className: "results-inline-legend-line--withdrawal",
@@ -629,7 +611,7 @@ export function renderSpendingPathChart({
       },
       {
         className: "results-inline-legend-line--shortfall",
-        label: "Shortfall"
+        label: "Shortfall gap"
       }
     ]);
   }
