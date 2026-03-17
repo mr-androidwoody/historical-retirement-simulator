@@ -394,21 +394,22 @@ function renderResults(result) {
   console.log("Debug summary", window.__debugSummary);
   console.log("Debug scenario count", window.__debugScenarios.length);
   console.log("Debug first scenario", window.__debugScenarios?.[0]);
-  console.log(
-console.table(
-  (window.__debugScenarios?.[0]?.yearlyRows?.slice(0, 10) || []).map((row) => ({
-    year: row.year,
-    startPortfolio: row.startPortfolio,
-    targetSpending: row.targetSpending,
-    actualSpending: row.actualSpending,
-    portfolioWithdrawal: row.portfolioWithdrawal,
-    portfolioReturn: row.portfolioReturn,
-    inflation: row.inflation,
-    inflationApplied: row.inflationApplied,
-    endPortfolio: row.endPortfolio,
-    depleted: row.depleted
-  }))
-);
+
+  console.table(
+    (window.__debugScenarios?.[0]?.yearlyRows?.slice(0, 10) || []).map((row) => ({
+      year: row.year,
+      startPortfolio: row.startPortfolio,
+      targetSpending: row.targetSpending,
+      actualSpending: row.actualSpending,
+      portfolioWithdrawal: row.portfolioWithdrawal,
+      portfolioReturn: row.portfolioReturn,
+      inflation: row.inflation,
+      inflationApplied: row.inflationApplied,
+      endPortfolio: row.endPortfolio,
+      depleted: row.depleted
+    }))
+  );
+
   console.groupEnd();
 
   updateHeroMetrics(summary);
