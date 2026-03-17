@@ -159,10 +159,6 @@ export function simulateScenario({ inputs, returnsProvider }) {
     cashBucket = Math.max(0, cashBucket - withdrawalFromCash);
     investedPortfolio = Math.max(0, investedPortfolio - withdrawalFromInvested);
 
-    if (requiredWithdrawal > availableTotal) {
-      depleted = true;
-    }
-
     // Apply returns only to invested assets
     investedPortfolio *= 1 + portfolioReturn;
     investedPortfolio *= 1 - annualFees;
