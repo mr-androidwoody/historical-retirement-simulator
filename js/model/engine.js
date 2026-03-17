@@ -29,9 +29,28 @@ export function simulateScenario({ inputs, returnsProvider }) {
     const returns = returnsProvider.getYearReturns(year);
 
     const startPortfolio = portfolio;
-    const withdrawal = annualSpending;
 
-    portfolio -= withdrawal;
+    const targetSpending = annualSpending;
+    const actualSpending = targetSpending;
+
+    const statePension = 0;
+    const otherIncome = 0;
+    const windfall = 0;
+
+    const cut = Math.max(0, targetSpending - actualSpending);
+    const shortfall = Math.max(
+      0,
+      actualSpending - (statePension + otherIncome + windfall + startPortfolio)
+    );
+
+    const totalNonPortfolioFunding = statePension + otherIncome + windfall;
+
+    const portfolioWithdrawal = Math.max(
+      0,
+      actualSpending - totalNonPortfolioFunding
+    );
+
+    portfolio -= portfolioWithdrawal;
 
     const weightedReturn =
       equityAllocation * returns.equities +
@@ -48,11 +67,25 @@ export function simulateScenario({ inputs, returnsProvider }) {
     yearlyRows.push({
       year,
       startPortfolio,
-      withdrawal,
+
+      targetSpending,
+      actualSpending,
+      cut,
+      shortfall,
+
+      statePension,
+      otherIncome,
+      windfall,
+
+      portfolioWithdrawal,
+
       portfolioReturn: weightedReturn,
-      endPortfolio: portfolio,
       inflation: returns.inflation,
-      realPortfolio
+
+      endPortfolio: portfolio,
+      realPortfolio,
+
+      depleted: portfolio <= 0
     });
 
     pathNominal.push(portfolio);
