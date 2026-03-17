@@ -1,3 +1,8 @@
+function toFiniteNumber(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : 0;
+}
+
 function formatPercentage(value) {
   const number = Number(value);
 
@@ -20,26 +25,6 @@ function formatCurrency(value) {
     currency: "GBP",
     maximumFractionDigits: 0
   }).format(number);
-}
-
-function formatYearRange(startYear, endYear) {
-  if (!startYear || !endYear) {
-    return "—";
-  }
-
-  return `${startYear} → ${endYear}`;
-}
-
-function formatSustainability(depleted, depletionYear) {
-  if (!depleted) {
-    return "Sustained";
-  }
-
-  if (typeof depletionYear === "number") {
-    return `Depleted in year ${depletionYear}`;
-  }
-
-  return "Depleted";
 }
 
 function createMetricCard(label, value) {
@@ -76,28 +61,53 @@ function renderMultiScenario(grid, summary) {
   );
 }
 
-function renderSingleScenario(grid, summary) {
+function renderSingleScenario(grid, scenarios) {
+  const scenario = Array.isArray(scenarios) ? scenarios[0] : null;
+  const rows = Array.isArray(scenario?.yearlyRows) ? scenario.yearlyRows : [];
+
+  if (rows.length === 0) {
+    grid.append(
+      createMetricCard("Total withdrawals", "£0"),
+      createMetricCard("Income received", "£0"),
+      createMetricCard("Cuts applied", "0"),
+      createMetricCard("First cut year", "None")
+    );
+    return;
+  }
+
+  let totalWithdrawals = 0;
+  let totalIncome = 0;
+  let cutYears = 0;
+  let firstCutYear = null;
+
+  rows.forEach((row) => {
+    totalWithdrawals += toFiniteNumber(row.portfolioWithdrawal);
+    totalIncome +=
+      toFiniteNumber(row.statePension) +
+      toFiniteNumber(row.otherIncome) +
+      toFiniteNumber(row.windfall);
+
+    if (toFiniteNumber(row.cut) > 0) {
+      cutYears += 1;
+
+      if (firstCutYear === null) {
+        firstCutYear = row.year;
+      }
+    }
+  });
+
   grid.append(
+    createMetricCard("Total withdrawals", formatCurrency(totalWithdrawals)),
+    createMetricCard("Income received", formatCurrency(totalIncome)),
+    createMetricCard("Cuts applied", String(cutYears)),
     createMetricCard(
-      "Scenario",
-      formatYearRange(summary.startYear, summary.endYear)
-    ),
-    createMetricCard(
-      "Outcome",
-      formatCurrency(summary.terminalNominal)
-    ),
-    createMetricCard(
-      "Sustainability",
-      formatSustainability(summary.depleted, summary.depletionYear)
-    ),
-    createMetricCard(
-      "Lowest point",
-      formatCurrency(summary.minimumWealth)
+      "First cut year",
+      firstCutYear !== null ? String(firstCutYear) : "None"
     )
   );
 }
 
-export function renderResultsSummary({ container, summary }) {
+export function renderResultsSummary({ container, summary, scenarios }) {
   if (!container) {
     return;
   }
@@ -114,13 +124,14 @@ export function renderResultsSummary({ container, summary }) {
 
   const heading = document.createElement("h2");
   heading.className = "results-summary-title";
-  heading.textContent = "Summary";
+  heading.textContent =
+    summary.type === "single" ? "Plan insights" : "Summary";
 
   const grid = document.createElement("div");
   grid.className = "results-summary-grid";
 
   if (summary.type === "single") {
-    renderSingleScenario(grid, summary);
+    renderSingleScenario(grid, scenarios);
   } else {
     renderMultiScenario(grid, summary);
   }
