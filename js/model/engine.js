@@ -1,23 +1,24 @@
 export function simulateScenario({ inputs, returnsProvider }) {
-  const initialPortfolio = Number(
+  const initialPortfolio = toNumber(
     inputs.startingPortfolio ?? inputs.initialPortfolio ?? 0
   );
 
-  const annualSpending = Number(inputs.annualSpending ?? 0);
+  const annualSpending = toNumber(inputs.annualSpending ?? 0);
+  const years = toInteger(inputs.simulationYears ?? inputs.years ?? 0);
 
-  const years = Number(
-    inputs.simulationYears ?? inputs.years ?? 0
-  );
+  const equityAllocation = toNumber(inputs.equityAllocation ?? 0);
+  const bondAllocation = toNumber(inputs.bondAllocation ?? 0);
+  const cashAllocation = toNumber(inputs.cashAllocation ?? 0);
 
-  const equityAllocation = Number(inputs.equityAllocation ?? 0);
-  const bondAllocation = Number(inputs.bondAllocation ?? 0);
-  const cashAllocation = Number(inputs.cashAllocation ?? 0);
+  const annualFees = toNumber(inputs.annualFees ?? inputs.fees ?? 0);
+  const statePensionToday = toNumber(inputs.statePensionToday ?? 0);
+  const includeStatePension = Boolean(inputs.includeStatePension);
+  const spendingBasis = String(inputs.spendingBasis ?? "nominal").toLowerCase();
 
-  const fees = Number(
-    inputs.annualFees ?? inputs.fees ?? 0
-  );
+  const people = Array.isArray(inputs.people) ? inputs.people : [];
 
   let portfolio = initialPortfolio;
+  let depleted = false;
 
   const yearlyRows = [];
   const pathNominal = [];
@@ -26,89 +27,165 @@ export function simulateScenario({ inputs, returnsProvider }) {
   let inflationIndex = 1;
 
   for (let year = 0; year < years; year += 1) {
-    const returns = returnsProvider.getYearReturns(year);
+    const returns = returnsProvider.getYearReturns(year) ?? {};
+    const inflation = toNumber(returns.inflation ?? 0);
 
     const startPortfolio = portfolio;
 
-    const targetSpending = annualSpending;
+    let statePension = 0;
+    let otherIncome = 0;
+    let windfall = 0;
+
+    for (const person of people) {
+      if (!person || person.include === false) {
+        continue;
+      }
+
+      const currentAge = toNumber(person.currentAge ?? 0);
+      const statePensionAge = toNumber(person.statePensionAge ?? 0);
+      const receivesFullStatePension = Boolean(person.receivesFullStatePension);
+      const personOtherIncome = toNumber(person.otherIncome ?? 0);
+      const incomeYears = toInteger(person.incomeYears ?? 0);
+      const windfallAmount = toNumber(person.windfallAmount ?? 0);
+      const windfallYear = toInteger(person.windfallYear ?? -1);
+
+      const age = currentAge + year;
+
+      if (
+        includeStatePension &&
+        receivesFullStatePension &&
+        age >= statePensionAge
+      ) {
+        statePension += statePensionToday;
+      }
+
+      if (year < incomeYears) {
+        otherIncome += personOtherIncome;
+      }
+
+      if (year === windfallYear) {
+        windfall += windfallAmount;
+      }
+    }
+
+    const targetSpending =
+      spendingBasis === "real"
+        ? annualSpending * inflationIndex
+        : annualSpending;
+
     const actualSpending = targetSpending;
+    const cut = 0;
+    const shortfall = 0;
 
-    const statePension = 0;
-    const otherIncome = 0;
-    const windfall = 0;
+    const totalIncome = statePension + otherIncome + windfall;
+    const requiredWithdrawal = Math.max(0, actualSpending - totalIncome);
+    const portfolioWithdrawal = Math.min(requiredWithdrawal, startPortfolio);
 
-    const cut = Math.max(0, targetSpending - actualSpending);
-    const shortfall = Math.max(
-      0,
-      actualSpending - (statePension + otherIncome + windfall + startPortfolio)
-    );
+    portfolio = startPortfolio - portfolioWithdrawal;
 
-    const totalNonPortfolioFunding = statePension + otherIncome + windfall;
+    if (requiredWithdrawal > startPortfolio) {
+      depleted = true;
+    }
 
-    const portfolioWithdrawal = Math.max(
-      0,
-      actualSpending - totalNonPortfolioFunding
-    );
+    const portfolioReturn = getPortfolioReturn({
+      returns,
+      equityAllocation,
+      bondAllocation,
+      cashAllocation
+    });
 
-    portfolio -= portfolioWithdrawal;
+    portfolio *= 1 + portfolioReturn;
+    portfolio *= 1 - annualFees;
 
-    const weightedReturn =
-      equityAllocation * returns.equities +
-      bondAllocation * returns.bonds +
-      cashAllocation * returns.cashlike;
+    if (portfolio <= 0) {
+      portfolio = 0;
+      depleted = true;
+    }
 
-    portfolio = portfolio * (1 + weightedReturn);
-    portfolio = portfolio * (1 - fees);
+    inflationIndex *= 1 + inflation;
 
-    inflationIndex = inflationIndex * (1 + returns.inflation);
-
-    const realPortfolio = portfolio / inflationIndex;
+    const endPortfolio = portfolio;
+    const realPortfolio =
+      inflationIndex > 0 ? endPortfolio / inflationIndex : endPortfolio;
 
     yearlyRows.push({
       year,
       startPortfolio,
-
       targetSpending,
       actualSpending,
       cut,
       shortfall,
-
       statePension,
       otherIncome,
       windfall,
-
       portfolioWithdrawal,
-
-      portfolioReturn: weightedReturn,
-      inflation: returns.inflation,
-
-      endPortfolio: portfolio,
+      endPortfolio,
+      portfolioReturn,
+      inflation,
       realPortfolio,
-
-      depleted: portfolio <= 0
+      depleted
     });
 
-    pathNominal.push(portfolio);
+    pathNominal.push(endPortfolio);
     pathReal.push(realPortfolio);
-
-    if (portfolio <= 0) {
-      return {
-        yearlyRows,
-        pathNominal,
-        pathReal,
-        terminalNominal: pathNominal[pathNominal.length - 1] ?? 0,
-        terminalReal: pathReal[pathReal.length - 1] ?? 0,
-        depleted: true
-      };
-    }
   }
+
+  const terminalNominal =
+    pathNominal.length > 0
+      ? pathNominal[pathNominal.length - 1]
+      : initialPortfolio;
+
+  const terminalReal =
+    pathReal.length > 0 ? pathReal[pathReal.length - 1] : initialPortfolio;
 
   return {
     yearlyRows,
     pathNominal,
     pathReal,
-    terminalNominal: pathNominal[pathNominal.length - 1] ?? 0,
-    terminalReal: pathReal[pathReal.length - 1] ?? 0,
-    depleted: false
+    terminalNominal,
+    terminalReal,
+    depleted
   };
+}
+
+function getPortfolioReturn({
+  returns,
+  equityAllocation,
+  bondAllocation,
+  cashAllocation
+}) {
+  if (typeof returns.portfolioReturn === "number") {
+    return returns.portfolioReturn;
+  }
+
+  const equityReturn = toNumber(
+    returns.equityReturn ?? returns.equities ?? 0
+  );
+
+  const bondReturn = toNumber(
+    returns.bondReturn ?? returns.bonds ?? 0
+  );
+
+  const cashReturn = toNumber(
+    returns.cashReturn ??
+      returns.cashlikeReturn ??
+      returns.cashlike ??
+      0
+  );
+
+  return (
+    equityReturn * equityAllocation +
+    bondReturn * bondAllocation +
+    cashReturn * cashAllocation
+  );
+}
+
+function toNumber(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : 0;
+}
+
+function toInteger(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? Math.trunc(number) : 0;
 }
