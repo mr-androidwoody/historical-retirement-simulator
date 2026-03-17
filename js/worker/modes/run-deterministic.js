@@ -10,9 +10,13 @@ export function runDeterministicMode(inputs) {
     returnsProvider
   });
 
+  const years = Number(inputs?.simulationYears ?? 0);
+
   const scenarios = [
     {
       scenarioId: 1,
+      startYear: 1,
+      endYear: years,
       ...scenario
     }
   ];
