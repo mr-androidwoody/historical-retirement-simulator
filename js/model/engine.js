@@ -1,4 +1,4 @@
-console.log("ENGINE VERSION: GK_DEBUG_1");
+throw new Error("ENGINE BREAK TEST");
 
 export function simulateScenario({ inputs, returnsProvider }) {
   const initialPortfolio = toNumber(
