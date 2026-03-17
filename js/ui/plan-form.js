@@ -761,10 +761,12 @@ function bindHistoricalControls(actualForm) {
 export function getPlanInputs(form = document.querySelector("#planForm form, #planForm")) {
   const actualForm = ensureFormElement(form);
 
-  const mode = getTextValue(actualForm, "#simulationMode", DEFAULTS.mode) || DEFAULTS.mode;
-  const historicalScope =
-    getTextValue(actualForm, 'input[name="historicalScope"]:checked', DEFAULTS.historicalScope) ||
-    DEFAULTS.historicalScope;
+const modeField = actualForm.querySelector("#simulationMode");
+const mode = modeField ? modeField.value : DEFAULTS.mode;const selectedScopeField = actualForm.querySelector('input[name="historicalScope"]:checked');
+
+const historicalScope = selectedScopeField
+  ? selectedScopeField.value
+  : DEFAULTS.historicalScope;
 
   const inputs = {
     mode,
