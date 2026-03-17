@@ -124,6 +124,31 @@ function clearHeroMetrics() {
 }
 
 function updateHeroMetrics(summary) {
+  if (!summary || typeof summary !== "object") {
+    clearHeroMetrics();
+    return;
+  }
+
+  if (summary.type === "single") {
+    if (heroSuccessRateElement) {
+      heroSuccessRateElement.textContent = summary.depleted ? "Depleted" : "Sustained";
+    }
+
+    if (heroMedianWealthElement) {
+      heroMedianWealthElement.textContent = formatCurrency(summary.terminalWealth);
+    }
+
+    if (heroWorstScenarioElement) {
+      heroWorstScenarioElement.textContent = formatCurrency(summary.minimumWealth);
+    }
+
+    if (heroScenarioCountElement) {
+      heroScenarioCountElement.textContent = "1";
+    }
+
+    return;
+  }
+
   if (heroSuccessRateElement) {
     heroSuccessRateElement.textContent = formatPercentage(summary.successRate);
   }
@@ -261,16 +286,6 @@ function normaliseScenarios(scenarios) {
   });
 }
 
-function normaliseSummary(summary, scenarios) {
-  return {
-    successRate: toFiniteNumber(summary?.successRate),
-    medianTerminalWealth: toFiniteNumber(summary?.medianTerminalWealth),
-    p10TerminalWealth: toFiniteNumber(summary?.p10TerminalWealth),
-    p90TerminalWealth: toFiniteNumber(summary?.p90TerminalWealth),
-    scenarioCount: toFiniteNumber(summary?.scenarioCount ?? scenarios.length)
-  };
-}
-
 function logScenarioResults(scenarios) {
   console.group("Scenario results");
   console.log("Scenario count:", scenarios.length);
@@ -291,7 +306,7 @@ function logScenarioResults(scenarios) {
 
 function renderResults(result) {
   const scenarios = normaliseScenarios(result?.scenarios);
-  const summary = normaliseSummary(result?.summary, scenarios);
+  const summary = result?.summary || {};
 
   updateHeroMetrics(summary);
 
