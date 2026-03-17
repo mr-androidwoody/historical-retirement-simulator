@@ -1088,6 +1088,64 @@ main,
   color: #9f2d2d;
 }
 
+.cell-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.cell-main {
+  line-height: 1.2;
+}
+
+.cell-sub {
+  font-size: 0.75rem;
+  line-height: 1.25;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.scenario-table td.is-zero {
+  color: var(--text-muted);
+}
+
+.scenario-table td.cut-moderate,
+.scenario-table td.shortfall-moderate {
+  color: #9a6700;
+  font-weight: 600;
+}
+
+.scenario-table td.cut-severe,
+.scenario-table td.shortfall-severe {
+  color: #b42318;
+  font-weight: 700;
+}
+
+.scenario-table tbody tr.is-normal td {
+  background: var(--surface);
+}
+
+.scenario-table tbody tr.is-stress td {
+  background: #fffaf0;
+}
+
+.scenario-table tbody tr.is-crisis td {
+  background: #fff5f5;
+}
+
+.scenario-table tbody tr.year-divider td {
+  border-top: 2px solid var(--border-strong);
+}
+
+.scenario-table tbody tr.is-stress:hover td {
+  background: #fff4dd;
+}
+
+.scenario-table tbody tr.is-crisis:hover td {
+  background: #ffe9e9;
+}
+
 /* ============================================================
    10. Generated plan form
    The JS renders the whole form into #planForm
