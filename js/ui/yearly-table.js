@@ -21,22 +21,15 @@ function formatCurrency(value) {
   }).format(number);
 }
 
-function formatPercent(value) {
-  return `${Math.round(toFiniteNumber(value) * 100)}%`;
-}
+function createCell(tagName, text, className = "") {
+  const cell = document.createElement(tagName);
 
-function formatDrawdown(value) {
-  const number = toFiniteNumber(value);
-
-  if (number >= 0) {
-    return "";
+  if (className) {
+    cell.className = className;
   }
 
-  return `↓ ${formatPercent(number)} from peak`;
-}
-
-function formatDepleted(value) {
-  return value ? "Yes" : "No";
+  cell.textContent = text;
+  return cell;
 }
 
 function buildScenarioRow(scenario) {
@@ -57,89 +50,6 @@ function buildScenarioRow(scenario) {
     terminalNominal,
     terminalReal
   };
-}
-
-function createCell(tagName, text, className = "") {
-  const cell = document.createElement(tagName);
-
-  if (className) {
-    cell.className = className;
-  }
-
-  cell.textContent = text;
-  return cell;
-}
-
-function createEnhancedValueCell({ primary, secondary = "", className = "" }) {
-  const cell = document.createElement("td");
-
-  if (className) {
-    cell.className = className;
-  }
-
-  const stack = document.createElement("div");
-  stack.className = "cell-stack";
-
-  const primaryValue = document.createElement("div");
-  primaryValue.className = "cell-main";
-  primaryValue.textContent = primary;
-  stack.appendChild(primaryValue);
-
-  if (secondary) {
-    const secondaryValue = document.createElement("div");
-    secondaryValue.className = "cell-sub";
-    secondaryValue.textContent = secondary;
-    stack.appendChild(secondaryValue);
-  }
-
-  cell.appendChild(stack);
-  return cell;
-}
-
-function enrichYearlyRows(rows) {
-  if (!Array.isArray(rows)) {
-    return [];
-  }
-
-  let runningPeak = 0;
-  let previousEndDrawdown = 0;
-
-  return rows.map((row) => {
-    const startPortfolio = toFiniteNumber(row?.startPortfolio);
-    const endPortfolio = toFiniteNumber(row?.endPortfolio);
-    const portfolioWithdrawal = toFiniteNumber(row?.portfolioWithdrawal);
-
-    const peakBeforeYear = Math.max(runningPeak, startPortfolio);
-    const startDrawdown =
-      peakBeforeYear > 0 ? startPortfolio / peakBeforeYear - 1 : 0;
-
-    runningPeak = Math.max(peakBeforeYear, endPortfolio);
-
-    const endDrawdown =
-      runningPeak > 0 ? endPortfolio / runningPeak - 1 : 0;
-
-    const withdrawalRate =
-      startPortfolio > 0 ? portfolioWithdrawal / startPortfolio : 0;
-
-    const isRecovery =
-      endDrawdown > previousEndDrawdown &&
-      previousEndDrawdown < 0 &&
-      toFiniteNumber(row?.cut) <= 0 &&
-      toFiniteNumber(row?.shortfall) <= 0 &&
-      !row?.depleted;
-
-    previousEndDrawdown = endDrawdown;
-
-    return {
-      ...row,
-      peakBeforeYear,
-      runningPeak,
-      startDrawdown,
-      endDrawdown,
-      withdrawalRate,
-      isRecovery
-    };
-  });
 }
 
 function getSeverityRatio(amount, baseline) {
@@ -193,26 +103,12 @@ function getShortfallSeverityClass(row) {
   return "";
 }
 
-function getRowStateClass(row) {
-  const cutRatio = getSeverityRatio(row?.cut, row?.targetSpending);
-  const shortfallRatio = getSeverityRatio(row?.shortfall, row?.targetSpending);
-  const endDrawdown = toFiniteNumber(row?.endDrawdown);
-
-  const isCrisis =
-    Boolean(row?.depleted) ||
-    cutRatio >= 0.2 ||
-    shortfallRatio >= 0.2 ||
-    endDrawdown <= -0.3;
-
-  if (isCrisis) {
+function getSingleScenarioRowClass(row) {
+  if (toFiniteNumber(row?.shortfall) > 0) {
     return "is-crisis";
   }
 
-  const isStress =
-    toFiniteNumber(row?.cut) > 0 ||
-    toFiniteNumber(row?.shortfall) > 0;
-
-  if (isStress) {
+  if (toFiniteNumber(row?.cut) > 0) {
     return "is-stress";
   }
 
@@ -221,24 +117,17 @@ function getRowStateClass(row) {
 
 function formatYearLabel(row) {
   const yearNumber = toFiniteNumber(row?.year);
-  const tags = [];
 
-  if (toFiniteNumber(row?.cut) > 0) {
-    tags.push("Cut");
-  } else if (toFiniteNumber(row?.shortfall) > 0) {
-    tags.push("Shortfall");
-  } else if (row?.isRecovery) {
-    tags.push("Recovery");
+  if (toFiniteNumber(row?.shortfall) > 0) {
+    return `Year ${yearNumber} • Shortfall`;
   }
 
-  return tags.length > 0
-    ? `Year ${yearNumber} • ${tags.join(" • ")}`
-    : `Year ${yearNumber}`;
-}
+  if (toFiniteNumber(row?.cut) > 0) {
+    return `Year ${yearNumber} • Cut`;
+  }
 
-/* ============================
-   MULTI-SCENARIO HELPERS
-   ============================ */
+  return `Year ${yearNumber}`;
+}
 
 function getMedianIndex(length) {
   if (length <= 0) {
@@ -259,7 +148,6 @@ function computeScenarioRankings(rows) {
     .sort((a, b) => a.row.terminalReal - b.row.terminalReal);
 
   const medianIndex = getMedianIndex(sorted.length);
-
   const rankingByOriginalIndex = new Map();
 
   sorted.forEach((entry, sortedIndex) => {
@@ -276,7 +164,7 @@ function computeScenarioRankings(rows) {
       bucketLabel = "Top quartile";
     }
 
-    const ranking = {
+    rankingByOriginalIndex.set(entry.originalIndex, {
       rankIndex: sortedIndex,
       percentile,
       isWorst: sortedIndex === 0,
@@ -286,9 +174,7 @@ function computeScenarioRankings(rows) {
       isBottomQuartile: percentile <= 0.25,
       isTopQuartile: percentile >= 0.75,
       bucketLabel
-    };
-
-    rankingByOriginalIndex.set(entry.originalIndex, ranking);
+    });
   });
 
   return rankingByOriginalIndex;
@@ -316,7 +202,6 @@ function computeStressMetrics(scenario) {
   let firstStressYear = null;
   let stressYears = 0;
   let maxCutRatio = 0;
-  let recoveryYears = 0;
 
   yearlyRows.forEach((row) => {
     const hasStress =
@@ -334,23 +219,12 @@ function computeStressMetrics(scenario) {
     maxCutRatio = Math.max(maxCutRatio, cutRatio);
   });
 
-  const enriched = enrichYearlyRows(yearlyRows);
-
-  enriched.forEach((row) => {
-    if (row?.isRecovery) {
-      recoveryYears += 1;
-    }
-  });
-
   return {
     firstStressYear,
     stressYears,
     maxCutRatio,
-    recoveryYears,
     hasStress: stressYears > 0,
-    hasEarlyStress:
-      firstStressYear !== null && firstStressYear <= 5,
-    hasRecovery: recoveryYears > 0
+    hasEarlyStress: firstStressYear !== null && firstStressYear <= 5
   };
 }
 
@@ -377,10 +251,6 @@ function getScenarioPrimaryTag(row, ranking) {
 function getScenarioSecondaryTag(stressMetrics) {
   if (stressMetrics.hasEarlyStress) {
     return "Early stress";
-  }
-
-  if (!stressMetrics.hasStress && stressMetrics.hasRecovery) {
-    return "Recovery";
   }
 
   if (!stressMetrics.hasStress) {
@@ -459,10 +329,6 @@ function getScenarioRowStateClass(row, ranking, stressMetrics) {
   return "is-normal";
 }
 
-/* ============================
-   MULTI-SCENARIO TABLE
-   ============================ */
-
 function renderMultiScenarioTable(container, scenarios) {
   const rows = scenarios.map(buildScenarioRow);
   const rankingMap = computeScenarioRankings(rows);
@@ -536,11 +402,7 @@ function renderMultiScenarioTable(container, scenarios) {
         formatDepletedEnhanced(row, row.depletionYear, row.stressMetrics),
         row.depleted ? "is-depleted" : "is-success"
       ),
-      createEnhancedValueCell({
-        primary: formatCurrency(row.terminalReal),
-        secondary: buildTerminalRealSecondary(row.ranking, row.stressMetrics),
-        className: "numeric"
-      }),
+      createCell("td", formatCurrency(row.terminalReal), "numeric"),
       createCell("td", formatCurrency(row.terminalNominal), "numeric")
     );
 
@@ -553,15 +415,10 @@ function renderMultiScenarioTable(container, scenarios) {
   container.appendChild(section);
 }
 
-/* ============================
-   SINGLE-SCENARIO YEAR TABLE
-   ============================ */
-
 function renderSingleScenarioTable(container, scenario) {
-  const rows = scenario?.yearlyRows || [];
-  const enrichedRows = enrichYearlyRows(rows);
+  const rows = Array.isArray(scenario?.yearlyRows) ? scenario.yearlyRows : [];
 
-  if (!Array.isArray(enrichedRows) || enrichedRows.length === 0) {
+  if (!rows.length) {
     return;
   }
 
@@ -592,17 +449,16 @@ function renderSingleScenarioTable(container, scenario) {
     createCell("th", "Other income"),
     createCell("th", "Windfall"),
     createCell("th", "Withdrawal"),
-    createCell("th", "End"),
-    createCell("th", "Depleted")
+    createCell("th", "End")
   );
 
   thead.appendChild(headRow);
 
   const tbody = document.createElement("tbody");
 
-  enrichedRows.forEach((row) => {
+  rows.forEach((row) => {
     const tr = document.createElement("tr");
-    tr.classList.add(getRowStateClass(row));
+    tr.classList.add(getSingleScenarioRowClass(row));
 
     if (row.year === 10 || row.year === 20) {
       tr.classList.add("year-divider");
@@ -610,11 +466,7 @@ function renderSingleScenarioTable(container, scenario) {
 
     tr.append(
       createCell("td", formatYearLabel(row)),
-      createEnhancedValueCell({
-        primary: formatCurrency(row.startPortfolio),
-        secondary: formatDrawdown(row.startDrawdown),
-        className: "numeric"
-      }),
+      createCell("td", formatCurrency(row.startPortfolio), "numeric"),
       createCell("td", formatCurrency(row.targetSpending), "numeric"),
       createCell("td", formatCurrency(row.actualSpending), "numeric"),
       createCell(
@@ -630,24 +482,8 @@ function renderSingleScenarioTable(container, scenario) {
       createCell("td", formatCurrency(row.statePension), "numeric"),
       createCell("td", formatCurrency(row.otherIncome), "numeric"),
       createCell("td", formatCurrency(row.windfall), "numeric"),
-      createEnhancedValueCell({
-        primary: formatCurrency(row.portfolioWithdrawal),
-        secondary:
-          toFiniteNumber(row.startPortfolio) > 0
-            ? `(${formatPercent(row.withdrawalRate)})`
-            : "",
-        className: "numeric"
-      }),
-      createEnhancedValueCell({
-        primary: formatCurrency(row.endPortfolio),
-        secondary: formatDrawdown(row.endDrawdown),
-        className: "numeric"
-      }),
-      createCell(
-        "td",
-        row.depleted ? "DEPLETED" : "",
-        row.depleted ? "is-depleted" : ""
-      )
+      createCell("td", formatCurrency(row.portfolioWithdrawal), "numeric"),
+      createCell("td", formatCurrency(row.endPortfolio), "numeric")
     );
 
     tbody.appendChild(tr);
@@ -658,10 +494,6 @@ function renderSingleScenarioTable(container, scenario) {
   section.append(heading, tableWrapper);
   container.appendChild(section);
 }
-
-/* ============================
-   ENTRY POINT
-   ============================ */
 
 export function renderScenarioTable({ container, scenarios }) {
   if (!container) {
